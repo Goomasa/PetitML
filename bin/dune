@@ -1,0 +1,4 @@
+(executable
+ (public_name petitml)
+ (name main)
+ (libraries petitml))
