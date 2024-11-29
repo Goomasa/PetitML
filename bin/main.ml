@@ -1,1 +1,2 @@
-let () = print_endline "Hello, World!"
+open Petitml.App
+let () = cui();;
