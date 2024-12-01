@@ -8,7 +8,9 @@
 
 open Lexer
 
-type ast_kind=BinTree of token_kind*ast_kind*ast_kind|UniTree of token_kind*ast_kind|ValNode of token_kind|EndNode;;
+type bin_op=Add
+type exp=ILit of int
+  | Bin of bin_op*exp*exp
 
 type slr_state=int;;
 type symbol=T of token_kind|S|A|B
@@ -41,7 +43,16 @@ let list_head=function
   | []->err "empty list"
   | h::_->h
 
-let reduce stack id=let (sym,num) = List.nth grammer id in (sym,pop stack num)
+let reduce stack g_id trees =let (sym,num)=List.nth grammer g_id in match g_id with
+  | 0->(sym,pop stack num,trees)
+  | 1->(sym,pop stack num,trees)
+  | 2->let new_trees=match trees with
+    | h1::h2::t -> Bin(Add,h2,h1)::t
+    | _->err "internal err : invalid trees" in (sym,pop stack num, new_trees)
+  | 3->(sym,pop stack num,trees)
+  | 4->(sym,pop stack num,trees)
+  | _->err "internal err"
+
 let search_table state sym=let rec search list=match list with
   | []->err "internal err : not found in table"
   | h::t->let (s,op)=h in match sym with
@@ -54,13 +65,15 @@ let trans state sym=let op=search_table state sym in match op with
 
 (*This regards stack as record of state*)
 let parse tokens=
-  let rec slr_parse tokens stack=let state=list_head stack in if state=4 then "ok" else
+  let rec slr_parse tokens stack trees=let state=list_head stack in if state=4 then list_head trees else
     match tokens with
     | End->err "syntax err"
     | Token(head,tail)->let op=search_table state (T(head)) in 
       match op with
-      | Shift(s)->slr_parse tail (s::stack)
-      | Reduce(id)->let (sym,new_stack)=reduce stack id in 
-        let new_state=trans (list_head new_stack) sym in slr_parse tokens (new_state::new_stack)
+      | Shift(s)->(match head with
+        | Num(n) -> slr_parse tail (s::stack) (ILit(n)::trees)
+        | _->slr_parse tail (s::stack) trees)
+      | Reduce(id)->let (sym,new_stack,new_trees)=reduce stack id trees in 
+        let new_state=trans (list_head new_stack) sym in slr_parse tokens (new_state::new_stack) new_trees
       | _->err "internal err : impossible Trans"
-  in slr_parse tokens [0]
+  in slr_parse tokens [0] []
