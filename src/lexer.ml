@@ -1,12 +1,18 @@
-type token_kind=Num of int|Plus|LParen|RParen|SemiSemi;;
-type token_line=Token of token_kind*token_line|End;;
+type token_kind=
+  | Num of int
+  | Plus
+  | LParen
+  | RParen
+  | SemiSemi
 
-exception Error of string;;
-let err s = raise (Error s);;
+type token_line=Token of token_kind*token_line|End
 
-let sub_str s n=String.sub s n ((String.length s)-n);;
-let char_to_int c=(Char.code c)-48;;
-let is_digit c=let i=char_to_int c in i>=0&&i<=9;;
+exception Error of string
+let err s = raise (Error s)
+
+let sub_str s n=String.sub s n ((String.length s)-n)
+let char_to_int c=(Char.code c)-48
+let is_digit c=let i=char_to_int c in i>=0&&i<=9
 
 let rec get_num s n=let i=char_to_int s.[0] in 
   if i>=0 && i<=9 then get_num (sub_str s 1) (10*n+i)
