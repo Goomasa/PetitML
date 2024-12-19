@@ -23,16 +23,28 @@ let rec pp_symbols symbols=match symbols with
 let rec pp_items items=match items with
   | []->print_newline()
   | h::t->pp_symbol h.i_left; print_string " -> "; pp_symbols h.i_right; 
-    print_string (", dot:"^(string_of_int h.dot)); print_newline(); pp_items t
+    print_string (", dot:"^(string_of_int h.dot)); print_string(" , next:");
+    (match !(h.next) with
+    | None->print_string("None")
+    | Some(n)->print_string(string_of_int n));
+    print_newline(); pp_items t
 
-let rec pp_states states=match states with
-  | []->print_newline()
-  | h::t->print_string ("id:"^(string_of_int h.id)); print_newline(); pp_items h.items; pp_states t
-
-let ()=pp_states (calc_states newGrammer)
+let rec pp_states pp_some states=match states with
+  | []->()
+  | h::t->print_string ("id:"^(string_of_int h.id)); print_newline(); pp_some h.items; pp_states pp_some t
 
 let rec pp_first_follow firsts=match firsts with
   | []->print_newline()
   | h::t->pp_symbol h.sym; print_string(" : "); pp_symbols !(h.set); print_newline(); pp_first_follow t
 
-let ()=pp_first_follow (calc_follows newGrammer)
+let pp_action action=match action with
+  | Shift(id)->print_string (("Shift:(")^(string_of_int id)^(")"))
+  | Reduce((sym,num))->print_string ("Reduce:("); pp_symbol sym; print_int num; print_char(')')
+
+let rec pp_contents items=match items with
+  | []->print_newline()
+  | h::t->print_string("follow:"); pp_symbol h.follow;
+    print_string(", action:");pp_action h.action;
+    print_newline(); pp_contents t
+
+let ()=pp_states pp_contents (create_slr_table newGrammer)
