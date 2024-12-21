@@ -39,7 +39,8 @@ let rec pp_first_follow firsts=match firsts with
 
 let pp_action action=match action with
   | Shift(id)->print_string (("Shift:(")^(string_of_int id)^(")"))
-  | Reduce((sym,num))->print_string ("Reduce:("); pp_symbol sym; print_int num; print_char(')')
+  | Reduce(sym,num)->print_string ("Reduce:("); pp_symbol sym; print_int num; print_char(')')
+  | Accept->print_string("Accept")
 
 let rec pp_contents items=match items with
   | []->print_newline()
@@ -47,4 +48,4 @@ let rec pp_contents items=match items with
     print_string(", action:");pp_action h.action;
     print_newline(); pp_contents t
 
-let ()=pp_states pp_contents (create_slr_table newGrammer)
+(*let ()=pp_states pp_contents (create_slr_table newGrammer)*)

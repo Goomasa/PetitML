@@ -1,4 +1,3 @@
-open Petitml.Lexer
-open Petitml.Parser
+open Petitml.Slr_parser
 
-let tokens=tokenize "((1+((1+1)+1)));;";;
+let ()=slr_parse "1+1;;(1+1)+1;;"

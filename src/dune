@@ -1,2 +1,7 @@
 (library
  (name petitml))
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -a))))
