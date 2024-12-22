@@ -1,14 +1,6 @@
 open Lexer
 open Slr
 
-let prod0={p_left=T("S");p_right=[T("A");NT(SemiSemi)]}
-and prod1={p_left=T("A");p_right=[T("B")]}
-and prod2={p_left=T("A");p_right=[T("B");NT(Plus);T("A")]}
-and prod3={p_left=T("B");p_right=[NT(LParen);T("A");NT(RParen)]}
-and prod4={p_left=T("B");p_right=[NT(Num(0))]}
-
-let newGrammer=[prod0;prod1;prod2;prod3;prod4]
-
 (*
 type symbol=T of string|NT of Lexer.token_kind|Eps
 type prod={p_left:symbol;p_right:symbol list}
@@ -20,7 +12,8 @@ type 't state={items:'t list;id:int} (* state of DFA and column of slr-table*)
 type action=Shift of int|Reduce of symbol*int 
 type content={follow:symbol;action:action}
 *)
-let slr_table=create_slr_table newGrammer
+
+let slr_table=Slr.create_slr_table Mlr_reader.new_grammer
 
 let head list=match list with
   | []->err "empty"

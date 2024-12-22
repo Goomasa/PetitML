@@ -11,4 +11,4 @@ let rec lexer_pp tokens=match tokens with
   |Token(head,tail)->pp_token head; print_newline(); lexer_pp tail
   |End->print_string "-End-"; print_newline() 
 
-let ()=lexer_pp (tokenize "1+1;;");;
+let ()=lexer_pp (tokenize "1+ 1;;");;

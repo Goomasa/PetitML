@@ -1,4 +1,3 @@
-
 type symbol=T of string|NT of Lexer.token_kind|Eps
 type prod={p_left:symbol;p_right:symbol list}
 type grammer=prod list
