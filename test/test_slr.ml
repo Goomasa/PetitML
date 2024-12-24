@@ -1,11 +1,13 @@
 open Petitml.Lexer
+open Petitml.Syntax
 open Petitml.Slr
+open Petitml.Mlr_reader
 
-let prod0={p_left=T("S");p_right=[T("A");NT(SemiSemi)]}
-and prod1={p_left=T("A");p_right=[T("B")]}
-and prod2={p_left=T("A");p_right=[T("B");NT(Plus);T("A")]}
-and prod3={p_left=T("B");p_right=[NT(LParen);T("A");NT(RParen)]}
-and prod4={p_left=T("B");p_right=[NT(Num(0))]}
+let prod0={p_left=T("S");p_right=[T("A");NT(SemiSemi)];kind=PK_null}
+and prod1={p_left=T("A");p_right=[T("B")];kind=PK_null}
+and prod2={p_left=T("A");p_right=[T("B");NT(Plus);T("A")];kind=PK_add}
+and prod3={p_left=T("B");p_right=[NT(LParen);T("A");NT(RParen)];kind=PK_null}
+and prod4={p_left=T("B");p_right=[NT(Num(0))];kind=PK_lit}
 
 let newGrammer=[prod0;prod1;prod2;prod3;prod4]
 
@@ -37,9 +39,14 @@ let rec pp_first_follow firsts=match firsts with
   | []->print_newline()
   | h::t->pp_symbol h.sym; print_string(" : "); pp_symbols !(h.set); print_newline(); pp_first_follow t
 
+let pp_prod_kind kind=match kind with
+  | PK_null->print_string "PK_null"
+  | PK_add->print_string "PK_add"
+  | PK_lit->print_string "PK_lit"
+
 let pp_action action=match action with
   | Shift(id)->print_string (("Shift:(")^(string_of_int id)^(")"))
-  | Reduce(sym,num)->print_string ("Reduce:("); pp_symbol sym; print_int num; print_char(')')
+  | Reduce(sym,num,pk)->print_string ("Reduce:("); pp_symbol sym; print_int num; print_string " "; pp_prod_kind pk;  print_char(')')
   | Accept->print_string("Accept")
 
 let rec pp_contents items=match items with
@@ -48,4 +55,4 @@ let rec pp_contents items=match items with
     print_string(", action:");pp_action h.action;
     print_newline(); pp_contents t
 
-(*let ()=pp_states pp_contents (create_slr_table newGrammer)*)
+let ()=pp_states pp_contents (create_slr_table new_grammer)

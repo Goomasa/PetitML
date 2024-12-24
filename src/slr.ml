@@ -1,11 +1,9 @@
-type symbol=T of string|NT of Lexer.token_kind|Eps
-type prod={p_left:symbol;p_right:symbol list}
-type grammer=prod list
+open Syntax
 
-type item={i_left:symbol;i_right:symbol list;dot:int;next:int option ref}
+type item={i_left:symbol;i_right:symbol list;dot:int;next:int option ref;prod_kind:prod_kind}
 type 't state={items:'t list;id:int} (* state of DFA and column of slr-table*)
 
-type action=Shift of int|Reduce of symbol*int|Accept (* shift->next_state_id , reduce->(i_left, num of i_right) *)
+type action=Shift of int|Reduce of symbol*int*prod_kind|Accept (* shift->next_state_id , reduce->(i_left, num of i_right) *)
 type content={follow:symbol;action:action}
 
 let state_id=let id=ref 0 in let count()= id:=!id+1;!id in count (* return 1,2,... *)
@@ -16,7 +14,7 @@ let closure base_items grammer=
     | item::tail->
       match (List.nth_opt item.i_right item.dot) with
       | Some(T t)->let prods_from_t=List.filter (fun x->x.p_left=T(t)) grammer in
-        let items_from_t=List.rev_map (fun x->{i_left=x.p_left;i_right=x.p_right;dot=0;next=ref None}) prods_from_t in 
+        let items_from_t=List.rev_map (fun x->{i_left=x.p_left;i_right=x.p_right;dot=0;next=ref None;prod_kind=x.kind}) prods_from_t in 
         let new_items=List.filter (fun x->not(List.mem x items)) items_from_t in
         extend (items@new_items) (tail@new_items)
       | _->extend items tail
@@ -24,13 +22,13 @@ let closure base_items grammer=
 
 let next_state_items items symbol grammer=
   let read_items=List.filter (fun x->List.nth_opt x.i_right x.dot=Some symbol) items in
-  let new_items=List.rev_map (fun x->{i_left=x.i_left;i_right=x.i_right;dot=x.dot+1;next=ref None}) read_items in
+  let new_items=List.rev_map (fun x->{i_left=x.i_left;i_right=x.i_right;dot=x.dot+1;next=ref None;prod_kind=x.prod_kind}) read_items in
   closure new_items grammer
 
 let base_states grammer=
   let items=match grammer with
   | []->Lexer.err "empty grammer"
-  | h::_->closure [{i_left=h.p_left;i_right=h.p_right;dot=0;next=ref None}] grammer
+  | h::_->closure [{i_left=h.p_left;i_right=h.p_right;dot=0;next=ref None;prod_kind=h.kind}] grammer
   in [{items=items;id=0}]
 
 let update_next symbol state id=
@@ -89,7 +87,7 @@ let rec calc_nulls grammer nulls=
 type constr_type=Follow of symbol|First of symbol|Sym of symbol
 type 't constr_set={sym:symbol;set:'t list ref}
 
-let rec first_constr_one constr prod_r nulls=match prod_r with
+let rec first_constr_one constr prod_right nulls=match prod_right with
   | []->()
   | h::t->(match h with
     | T(_) -> (if List.mem h !(constr.set) then () else constr.set:=h:: !(constr.set));
@@ -138,7 +136,7 @@ let rec fol_constr_aux constr prod_rests nulls=match prod_rests with
     | NT(_)->constr.set:=uni_one (Sym(h)) !(constr.set)
     | Eps->fol_constr_aux constr t nulls)
 
-let rec fol_constr_fir constraints prod_r nulls=match prod_r with
+let rec fol_constr_fir constraints prod_right nulls=match prod_right with
   | []->()
   | h::t->
     (match h with
@@ -148,7 +146,7 @@ let rec fol_constr_fir constraints prod_r nulls=match prod_r with
     | _->fol_constr_fir constraints t nulls)
 
 let fol_constr_fol constraints prod nulls=
-  let rec aux rev_prod_r=match rev_prod_r with
+  let rec aux rev_prod_right=match rev_prod_right with
   | [] -> ()
   | h::t->(match h with
     | T(_) -> 
@@ -213,7 +211,7 @@ let table_one_col state grammer=
   | h::t->(match !(h.next) with
     | None -> 
       let follow=(List.find (fun x->x.sym=h.i_left) follows) in 
-      let contents= List.rev_map (fun x->{follow=x;action=Reduce((h.i_left,(List.length h.i_right)))}) !(follow.set) in 
+      let contents= List.rev_map (fun x->{follow=x;action=Reduce(h.i_left,(List.length h.i_right),h.prod_kind)}) !(follow.set) in 
       List.iter (is_conflict col_items) contents ; one_col t (uni_app contents col_items)
     | Some(id)->
       let content={follow=List.nth h.i_right h.dot;action=Shift(id)} in 

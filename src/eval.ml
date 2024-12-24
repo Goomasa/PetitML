@@ -1,4 +1,4 @@
-open Parser
+open Syntax
 
 let rec eval=function
   | ILit(n)->n

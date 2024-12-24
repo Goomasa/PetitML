@@ -1,4 +1,5 @@
-S := A ";;" ,
-A := B | B "+" A ,
-B := "(" A ")" ,
-B := Int 
+S := A ";;"       {PK_null},
+A := B            {PK_null}
+  | B "+" A       {PK_add},
+B := "(" A ")"    {PK_null},
+B := Int          {PK_lit}
