@@ -39,14 +39,9 @@ let rec pp_first_follow firsts=match firsts with
   | []->print_newline()
   | h::t->pp_symbol h.sym; print_string(" : "); pp_symbols !(h.set); print_newline(); pp_first_follow t
 
-let pp_prod_kind kind=match kind with
-  | PK_null->print_string "PK_null"
-  | PK_add->print_string "PK_add"
-  | PK_lit->print_string "PK_lit"
-
 let pp_action action=match action with
   | Shift(id)->print_string (("Shift:(")^(string_of_int id)^(")"))
-  | Reduce(sym,num,pk)->print_string ("Reduce:("); pp_symbol sym; print_int num; print_string " "; pp_prod_kind pk;  print_char(')')
+  | Reduce(sym,num,_)->print_string ("Reduce:("); pp_symbol sym; print_int num; print_char(')')
   | Accept->print_string("Accept")
 
 let rec pp_contents items=match items with

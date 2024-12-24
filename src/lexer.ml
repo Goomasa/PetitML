@@ -1,6 +1,9 @@
 type token_kind=
   | Num of int
   | Plus
+  | Minus
+  | Star
+  | Slash
   | LParen
   | RParen
   | SemiSemi
@@ -29,6 +32,9 @@ let to_token str=if str="" then (None,"") else
     let token= match str.[0] with
     | ' '->None
     | '+'->Some Plus
+    | '-'->Some Minus
+    | '*'->Some Star
+    | '/'->Some Slash
     | '('->Some LParen
     | ')'->Some RParen
     | _-> err "syntax err" (* <- add handler for reserved-word *)

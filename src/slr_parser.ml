@@ -9,6 +9,10 @@ let head list=match list with
   | []->err "empty"
   | h::_->h
 
+let rec pop list n=if n=0 then list else match list with
+  | []->[]
+  | _::t->pop t (n-1)
+
 let search_table sym id=let state=List.find (fun x->x.id=id) slr_table in
   let accept={follow=Eps;action=Accept} in 
   if state.items=[accept] then Accept 

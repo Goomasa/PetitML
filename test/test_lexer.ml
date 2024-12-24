@@ -1,11 +1,14 @@
 open Petitml.Lexer
 
 let pp_token=function
-  |Num(n)->print_string (string_of_int n)
-  |Plus->print_string "+ "
-  |LParen->print_string "( "
-  |RParen->print_string ") "
-  |SemiSemi->print_string ";; " 
+  | Num(n)->print_string (string_of_int n)
+  | Plus->print_string "+ "
+  | Minus->print_string "- "
+  | Star->print_string "* "
+  | Slash->print_string "/ "
+  | LParen->print_string "( "
+  | RParen->print_string ") "
+  | SemiSemi->print_string ";; " 
 
 let rec lexer_pp tokens=match tokens with
   |Token(head,tail)->pp_token head; print_newline(); lexer_pp tail

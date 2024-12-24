@@ -1,5 +1,9 @@
-S := A ";;"       {PK_null},
-A := B            {PK_null}
-  | B "+" A       {PK_add},
-B := "(" A ")"    {PK_null},
-B := Int          {PK_lit}
+Top := Add ";;"       {PK_null},
+Add := Mul            {PK_null}
+  | Add "+" Mul       {PK_add}
+  | Add "-" Mul       {PK_sub},
+Mul := Prim           {PK_null}
+  | Mul "*" Prim      {PK_mul}
+  | Mul "/" Prim      {PK_div},
+Prim := "(" Add ")"    {PK_null},
+Prim := Int          {PK_lit}
