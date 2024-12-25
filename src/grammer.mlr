@@ -1,9 +1,18 @@
-Top := Add ";;"       {PK_null},
+Top := Comp ";;"      {PK_null},
+
+Comp := Add           {PK_null}
+  | Add "=" Add       {PK_eq}
+  | Add ">" Add       {PK_large}
+  | Add "<" Add       {PK_small},
+
 Add := Mul            {PK_null}
+  | "-" Prim          {PK_unary}
   | Add "+" Mul       {PK_add}
   | Add "-" Mul       {PK_sub},
+
 Mul := Prim           {PK_null}
   | Mul "*" Prim      {PK_mul}
   | Mul "/" Prim      {PK_div},
-Prim := "(" Add ")"    {PK_null},
-Prim := Int          {PK_lit}
+  
+Prim := "(" Add ")"   {PK_null}
+  | Int               {PK_lit}

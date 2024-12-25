@@ -7,6 +7,9 @@ type token_kind=
   | LParen
   | RParen
   | SemiSemi
+  | Equal
+  | LAngle
+  | RAngle
 
 type token_line=Token of token_kind*token_line|End
 
@@ -37,6 +40,9 @@ let to_token str=if str="" then (None,"") else
     | '/'->Some Slash
     | '('->Some LParen
     | ')'->Some RParen
+    | '='->Some Equal
+    | '<'->Some LAngle
+    | '>'->Some RAngle
     | _-> err "syntax err" (* <- add handler for reserved-word *)
    in (token,sub_str str 1)
 

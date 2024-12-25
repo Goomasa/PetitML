@@ -1,11 +1,16 @@
 open Slr_parser
 open Eval
 
-let pp_int n=print_string "- : int = "; print_int n; print_newline();;
+let print_bool b=match b with
+  | true->print_string "true"
+  | false->print_string "false"
 
 let rec pp_results trees=match trees with
   | []->()
-  | h::t->pp_int (eval h); pp_results t
+  | h::t->(match (eval h) with
+    | IntV n -> print_string "- : int = "; print_int n
+    | BoolV b-> print_string "- : bool = "; print_bool b ); 
+    print_newline(); pp_results t
 
 let rec cui()=print_string "# "; let line=read_line() in 
   if line="quit;;" then exit 0
