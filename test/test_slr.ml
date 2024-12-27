@@ -7,7 +7,7 @@ let prod0={p_left=T("S");p_right=[T("A");NT(SemiSemi)];kind=PK_null}
 and prod1={p_left=T("A");p_right=[T("B")];kind=PK_null}
 and prod2={p_left=T("A");p_right=[T("B");NT(Plus);T("A")];kind=PK_add}
 and prod3={p_left=T("B");p_right=[NT(LParen);T("A");NT(RParen)];kind=PK_null}
-and prod4={p_left=T("B");p_right=[NT(Num(0))];kind=PK_lit}
+and prod4={p_left=T("B");p_right=[NT(True)];kind=PK_lit}
 
 let newGrammer=[prod0;prod1;prod2;prod3;prod4]
 

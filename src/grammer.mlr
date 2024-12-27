@@ -1,7 +1,14 @@
-Top := Comp ";;"      {PK_null},
+Top := Or ";;"      {PK_null},
+
+Or := And             {PK_null}
+  | Or "||" And       {PK_or},
+
+And := Comp            {PK_null}
+  | And "&&" Comp      {PK_and},
 
 Comp := Add           {PK_null}
-  | Add "=" Add       {PK_eq}
+  | Comp "=" Add       {PK_eq}
+  | Comp "<>" Add      {PK_neq}
   | Add ">" Add       {PK_large}
   | Add "<" Add       {PK_small},
 
@@ -14,5 +21,7 @@ Mul := Prim           {PK_null}
   | Mul "*" Prim      {PK_mul}
   | Mul "/" Prim      {PK_div},
   
-Prim := "(" Add ")"   {PK_null}
+Prim := "(" Or ")"    {PK_null}
   | Int               {PK_lit}
+  | "true"            {PK_lit}
+  | "false"           {PK_lit}
