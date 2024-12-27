@@ -13,14 +13,19 @@ let rec pop list n=if n=0 then list else match list with
   | []->[]
   | _::t->pop t (n-1)
 
-let search_table sym id=let state=List.find (fun x->x.id=id) slr_table in
-  let accept={follow=Eps;action=Accept} in 
-  if state.items=[accept] then Accept 
-  else (List.find (
-    fun x->match sym with
-    | NT(Num(_)) -> x.follow=NT(Num(0))
-    | _->x.follow=sym
-  ) state.items).action
+let search_table sym id=
+  try
+    let state=List.find (fun x->x.id=id) slr_table in
+    let accept={follow=Eps;action=Accept} in 
+    if state.items=[accept] then Accept 
+    else (List.find (
+      fun x->match sym with
+      | NT(Num _) -> x.follow=NT(Num 0)
+      | NT(Ident _)-> x.follow=NT(Ident "")
+      | _->x.follow=sym
+    ) state.items).action
+  with _->
+    Lexer.err "syntax err"
 
 let slr_parse code=
   let rec parse stack tokens prev_token trees=match tokens with

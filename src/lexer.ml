@@ -16,6 +16,7 @@ type token_kind=
   | BarBar
   | True
   | False
+  | Let
 
 type token_line=Token of token_kind*token_line|End
 
@@ -56,6 +57,7 @@ let to_token str=if str="" then (None,"") else
       let token=match w with
       | "true"->Some True
       | "false"->Some False
+      | "let"->Some Let
       | _->Some (Ident w)
     in (token,s)
     else let token= match str.[0] with

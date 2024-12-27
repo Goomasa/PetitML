@@ -43,6 +43,7 @@ let new_grammer=
       | _->let token= (match h1 with
         | "Int" -> NT (Num 0)
         | "Eps"->Eps
+        | "Ident"->NT (Ident "")
         | _->T h1)
        in prod.p_right<-token::prod.p_right; aux prod grammer (h2::t))
   in let g= match mlr_div with

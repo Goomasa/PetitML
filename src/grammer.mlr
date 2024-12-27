@@ -1,4 +1,7 @@
-Top := Or ";;"      {PK_null},
+Top := Or ";;"      {PK_top}
+  | DefV ";;"       {PK_top},
+
+DefV := "let" Id "=" Or  {PK_defv},
 
 Or := And             {PK_null}
   | Or "||" And       {PK_or},
@@ -25,3 +28,6 @@ Prim := "(" Or ")"    {PK_null}
   | Int               {PK_lit}
   | "true"            {PK_lit}
   | "false"           {PK_lit}
+  | Id                {PK_null},
+
+Id := Ident           {PK_lit}

@@ -26,10 +26,11 @@ let next_state_items items symbol grammer=
   closure new_items grammer
 
 let base_states grammer=
-  let items=match grammer with
-  | []->Lexer.err "empty grammer"
-  | h::_->closure [{i_left=h.p_left;i_right=h.p_right;dot=0;next=ref None;prod_kind=h.kind}] grammer
-  in [{items=items;id=0}]
+  let rec aux rest_g items=match rest_g with
+  | []->items
+  | h::t->if h.kind=PK_top then aux t ({i_left=h.p_left;i_right=h.p_right;dot=0;next=ref None;prod_kind=h.kind}::items) 
+    else aux t items 
+  in let items= closure (aux grammer []) grammer in [{items=items;id=0}]
 
 let update_next symbol state id=
   let state_items=List.filter (fun x->List.nth_opt x.i_right x.dot=Some symbol) state.items in 

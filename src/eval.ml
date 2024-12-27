@@ -1,6 +1,5 @@
 open Syntax
-
-type value=IntV of int|BoolV of bool
+open Environment
 
 let bin_calc op val1 val2=match (op,val1,val2) with
   | (Add,IntV n1,IntV n2)->IntV (n1+n2)
@@ -15,13 +14,18 @@ let bin_calc op val1 val2=match (op,val1,val2) with
   | (Small,IntV n1,IntV n2)->BoolV (n1<n2)
   | _->Lexer.err "invalid type"
 
-let rec eval=function
-  | ILit n->IntV n
-  | BLit b->BoolV b
-  | Bin(op,e1,e2)->bin_calc op (eval e1) (eval e2)
-  | And(e1,e2)->(match eval e1 with
-    | BoolV true -> eval e2
-    | _->BoolV false)
-  | Or(e1,e2)->(match eval e1 with
-    | BoolV true -> BoolV true
-    | _->eval e2)
+let rec eval exp env=match exp with
+  | ILit n->(IntV n,env)
+  | BLit b->(BoolV b,env)
+  | Ident id->let v=search_env id env in (v,env)
+  | Var(id,e)->let (v,_)=eval e env in let value=Var(id,v) in (value,value::env)
+  | Bin(op,e1,e2)->
+    let (v1,_)=eval e1 env in 
+    let (v2,_)=eval e2 env in 
+    (bin_calc op v1 v2,env)
+  | And(e1,e2)->(match eval e1 env with
+    | (BoolV true,_) -> eval e2 env
+    | _->(BoolV false,env))
+  | Or(e1,e2)->(match eval e1 env with
+    | (BoolV true,_) -> (BoolV true,env)
+    | _->eval e2 env)
