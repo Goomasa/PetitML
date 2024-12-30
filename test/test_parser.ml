@@ -1,3 +1,3 @@
-open Petitml.Slr_parser
+open Petitml.Parser
 
 (*let ()=slr_parse "1+1;;(1+1)+1;;"*)

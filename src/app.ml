@@ -1,4 +1,4 @@
-open Slr_parser
+open Parser
 open Eval
 
 let print_lit value=match value with

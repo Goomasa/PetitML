@@ -21,6 +21,7 @@ type token_kind=
   | Then
   | Else
   | Not
+  | End (* for lalr *)
 
 type token_line=Token of token_kind*token_line|End
 

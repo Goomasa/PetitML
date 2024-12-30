@@ -1,9 +1,9 @@
 open Syntax
-open Slr
+open Lalr
 
 let err=Lexer.err
 
-let slr_table=create_slr_table Mlr_reader.new_grammer
+let slr_table=create_lalr_table Mlr_reader.new_grammer
 
 let head list=match list with
   | []->err "empty"
