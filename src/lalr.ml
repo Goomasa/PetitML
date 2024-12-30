@@ -78,9 +78,7 @@ let rec pop list n=if n=0 then list else match list with
   | []->[]
   | _::t->pop t (n-1)
 
-let calc_first syms grammer=
-  let nulls=Slr.calc_nulls grammer [] in 
-  let firsts=Slr.calc_firsts grammer nulls in (* <- slow? *)
+let calc_first nulls firsts syms=
   let rec calc syms first=match syms with
   | []->first
   | NT nts::_->NT nts::first
@@ -110,7 +108,7 @@ let rec app_aheads new_items now_items rests updates=match new_items with
       | Some i->app_aheads t now_items rests (i::updates))
     | Some r->app_aheads t now_items (r::rests) updates
 
-let lr1_closure bases grammer=
+let lr1_closure nulls firsts bases grammer=
   let rec extend items tmp=match tmp with
   | []->items
   | h::t->
@@ -119,7 +117,7 @@ let lr1_closure bases grammer=
       let prods_from_t=List.filter (fun x->x.p_left=T ts) grammer in 
       let items_from_t=List.rev_map (fun x->{
         i_left=x.p_left; i_right=x.p_right; dot=0; next=ref None; prod_kind=x.kind;
-        ahead=(calc_first ((pop h.i_right (h.dot+1))@ !(h.ahead)) grammer) (* <- slow? *)
+        ahead=calc_first nulls firsts ((pop h.i_right (h.dot+1))@ !(h.ahead)) (* <- slow? *)
       }) prods_from_t in 
       let (new_items,updates)=app_aheads items_from_t items [] [] in 
       extend (List.rev_append new_items items) (List.rev_append (List.rev_append new_items updates) t)
@@ -150,13 +148,15 @@ let rec is_dest result dest=match dest with
     else is_dest result t
 
 let spread_dests kernel grammer=
+  let nulls=Slr.calc_nulls grammer [] in 
+  let firsts=Slr.calc_firsts grammer nulls in 
   let rec aux ker dests=match ker with
   | []->dests
   | {items=i;id=_}::t->
     match List.nth_opt i.i_right i.dot with
     | None->aux t ([]::dests)
     | Some(T _)->
-      let closured=lr1_closure [i] grammer in 
+      let closured=lr1_closure nulls firsts [i] grammer in 
       let shifted=List.rev_map (fun x->shift x) closured in 
       aux t (shifted::dests)
     | Some _->let shifted=shift i in aux t ([shifted]::dests)

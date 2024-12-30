@@ -7,6 +7,7 @@ type prod_kind=
   | PK_mul
   | PK_div
   | PK_unary
+  | PK_not
   | PK_eq
   | PK_neq
   | PK_large
@@ -26,6 +27,8 @@ type exp=ILit of int
   | And of exp*exp
   | Or of exp*exp
   | If of exp*exp*exp
+  | Not of exp
+  | Unary of exp
 
 type symbol=T of string|NT of Lexer.token_kind|Eps
 type prod={mutable p_left:symbol;mutable p_right:symbol list;mutable kind:prod_kind}
@@ -40,6 +43,7 @@ let to_prod_kind str=match str with
   | "PK_mul"->PK_mul
   | "PK_div"->PK_div
   | "PK_unary"->PK_unary
+  | "PK_not"->PK_not
   | "PK_eq"->PK_eq
   | "PK_neq"->PK_neq
   | "PK_large"->PK_large
@@ -71,7 +75,10 @@ let create_ast prod_kind token trees=match prod_kind with
     | Ident i->Ident(i)::trees
     | _->ast_err())
   | PK_unary->(match trees with
-    | ILit(n)::t -> ILit(-n)::t
+    | h::t->Unary h::t
+    | _->ast_err())
+  | PK_not->(match trees with
+    | h::t -> Not h::t
     | _->ast_err())
   | PK_and->(match trees with
     | h1::h2::t -> And(h2,h1)::t

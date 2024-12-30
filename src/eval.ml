@@ -1,6 +1,8 @@
 open Syntax
 open Environment
 
+let err=Lexer.err
+
 let bin_calc op val1 val2=match (op,val1,val2) with
   | (Add,IntV n1,IntV n2)->IntV (n1+n2)
   | (Sub,IntV n1,IntV n2)->IntV (n1-n2)
@@ -12,7 +14,7 @@ let bin_calc op val1 val2=match (op,val1,val2) with
   | (Neq,BoolV b1,BoolV b2)->BoolV (b1<>b2)
   | (Large,IntV n1,IntV n2)->BoolV (n1>n2)
   | (Small,IntV n1,IntV n2)->BoolV (n1<n2)
-  | _->Lexer.err "invalid type"
+  | _->err "invalid type"
 
 let rec eval exp env=match exp with
   | ILit n->(IntV n,env)
@@ -29,3 +31,13 @@ let rec eval exp env=match exp with
   | Or(e1,e2)->(match eval e1 env with
     | (BoolV true,_) -> (BoolV true,env)
     | _->eval e2 env)
+  | If(e1,e2,e3)->(match eval e1 env with
+    | (BoolV true,_) -> eval e2 env
+    | (BoolV false,_)->eval e3 env
+    | _->err "no condition")
+  | Unary exp->(match eval exp env with
+    | (IntV n,e)->(IntV (-n),e)
+    | _->err "not int")
+  | Not exp->(match eval exp env with
+    | (BoolV b,e)->(BoolV (not b),e)
+    | _->err "not int")

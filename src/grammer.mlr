@@ -1,7 +1,10 @@
-Top := Or ";;"      {PK_top}
+Top := If ";;"      {PK_top}
   | DefV ";;"       {PK_top},
 
 DefV := "let" Id "=" Or  {PK_defv},
+
+If := Or            {PK_null}
+  | "if" If "then" If "else" If {PK_if},
 
 Or := And             {PK_null}
   | Or "||" And       {PK_or},
@@ -17,6 +20,7 @@ Comp := Add           {PK_null}
 
 Add := Mul            {PK_null}
   | "-" Prim          {PK_unary}
+  | "not" Prim        {PK_not}
   | Add "+" Mul       {PK_add}
   | Add "-" Mul       {PK_sub},
 
