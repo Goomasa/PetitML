@@ -14,6 +14,7 @@ type prod_kind=
   | PK_and
   | PK_or
   | PK_defv (* definition of variables *)
+  | PK_if
 
 type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small
 
@@ -24,6 +25,7 @@ type exp=ILit of int
   | Bin of bin_op*exp*exp
   | And of exp*exp
   | Or of exp*exp
+  | If of exp*exp*exp
 
 type symbol=T of string|NT of Lexer.token_kind|Eps
 type prod={mutable p_left:symbol;mutable p_right:symbol list;mutable kind:prod_kind}
@@ -45,6 +47,7 @@ let to_prod_kind str=match str with
   | "PK_and"->PK_and
   | "PK_or"->PK_or
   | "PK_defv"->PK_defv
+  | "PK_if"->PK_if
   | _->Lexer.err "no such kind"
 
 let to_binOp prod_kind=match prod_kind with
@@ -78,6 +81,9 @@ let create_ast prod_kind token trees=match prod_kind with
     | _->ast_err())
   | PK_defv->(match trees with
     | h::(Ident i)::t->Var(i,h)::t
+    | _->ast_err())
+  | PK_if->(match trees with
+    | h1::h2::h3::t->If(h3,h2,h1)::t
     | _->ast_err())
   | _->(match trees with
     | h1::h2::t -> Bin(to_binOp prod_kind,h2,h1)::t

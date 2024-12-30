@@ -1,6 +1,6 @@
 open Syntax
 
-type item={i_left:symbol;i_right:symbol list;dot:int;next:int option ref;prod_kind:prod_kind}
+type slr_item={i_left:symbol;i_right:symbol list;dot:int;next:int option ref;prod_kind:prod_kind}
 type 't state={items:'t list;id:int} (* state of DFA and column of slr-table*)
 
 type action=Shift of int|Reduce of symbol*int*prod_kind|Accept (* shift->next_state_id , reduce->(i_left, num of i_right) *)
@@ -71,9 +71,9 @@ let rec uni_list list=match list with
 
 let uni_one a list=if List.mem a list then list else a::list
 
-let rec uni_app l1 l2=match l1 with
+let rec union l1 l2=match l1 with
   | [] -> l2
-  | h::t->if List.mem h l2 then uni_app t l2 else uni_app t (h::l2)
+  | h::t->if List.mem h l2 then union t l2 else union t (h::l2)
 
 let rec is_null l nulls=match l with
   | []->true
@@ -112,7 +112,7 @@ let rec first_one sym set constraints=match set with
     | T(_) -> 
       if sym=h then first_one sym t constraints else
       let sym_constr=List.find (fun x->x.sym=h) constraints in
-      uni_app !(sym_constr.set) (first_one sym t constraints)
+      union !(sym_constr.set) (first_one sym t constraints)
     | NT(_)->h::(first_one sym t constraints)
     | Eps->Lexer.err "internal err : invalid pattern")
 
@@ -172,11 +172,11 @@ let rec follow_one sym set constraints firsts=match set with
   | h::t->(match h with
     | First(s)->
       let first=List.find (fun x->x.sym=s) firsts in 
-      uni_app (List.rev_map (fun x->Sym(x)) !(first.set)) (follow_one sym t constraints firsts)
+      union (List.rev_map (fun x->Sym(x)) !(first.set)) (follow_one sym t constraints firsts)
     | Follow(s)->
       if sym=s then follow_one sym t constraints firsts else
       let constr=List.find (fun x->x.sym=s) constraints in 
-      uni_app !(constr.set) (follow_one sym t constraints firsts)
+      union !(constr.set) (follow_one sym t constraints firsts)
     | Sym(_)->h::(follow_one sym t constraints firsts))
 
 let calc_follows grammer=
@@ -204,8 +204,7 @@ let rec is_conflict table_col content=match table_col with
     if content.follow=h.follow&&content.action<>h.action then Lexer.err "conflicted!"
     else is_conflict t content
 
-let table_one_col state grammer=
-  let follows=calc_follows grammer in 
+let table_one_col follows state=
   let state_items=state.items in 
   let rec one_col st_items col_items=match st_items with
   | []->col_items
@@ -213,17 +212,19 @@ let table_one_col state grammer=
     | None -> 
       let follow=(List.find (fun x->x.sym=h.i_left) follows) in 
       let contents= List.rev_map (fun x->{follow=x;action=Reduce(h.i_left,(List.length h.i_right),h.prod_kind)}) !(follow.set) in 
-      List.iter (is_conflict col_items) contents ; one_col t (uni_app contents col_items)
+      List.iter (is_conflict col_items) contents ; one_col t (union contents col_items)
     | Some(id)->
       let content={follow=List.nth h.i_right h.dot;action=Shift(id)} in 
       is_conflict col_items content; one_col t (uni_one content col_items))
   in {items=one_col state_items [];id=state.id}
 
-let create_slr_table grammer=let states=calc_states grammer in 
+let create_slr_table grammer=
+  let follows=calc_follows grammer in
+  let states=calc_states grammer in 
   let rec create st_rests table=match st_rests with
     | [] -> table
     | h::t->
-      let column=table_one_col h grammer in 
+      let column=table_one_col follows h in 
       let new_col= if column.items=[] then {items=[{follow=Eps;action=Accept}];id=column.id} else column in 
       create t (new_col::table)
   in create states []

@@ -17,6 +17,10 @@ type token_kind=
   | True
   | False
   | Let
+  | If
+  | Then
+  | Else
+  | Not
 
 type token_line=Token of token_kind*token_line|End
 
@@ -58,6 +62,10 @@ let to_token str=if str="" then (None,"") else
       | "true"->Some True
       | "false"->Some False
       | "let"->Some Let
+      | "if"->Some If
+      | "then"
+      | "else"->Some Else
+      | "not"->Some Not
       | _->Some (Ident w)
     in (token,s)
     else let token= match str.[0] with
