@@ -8,9 +8,9 @@ type content={follow:symbol;action:action}
 
 let state_id=let id=ref 0 in let count()= id:=!id+1;!id in count
 
-let union=Slr.union
+let union=Util.union
 
-let same_list l1 l2=List.for_all (fun x->List.mem x l2) l1
+let same_list=Util.same_list
 
 let lr0_closure base_items grammer=
   let rec extend items tmp=match tmp with
@@ -50,7 +50,7 @@ let next_id items states=
   let tmp_items=List.rev_map (fun x->(x.i_left,x.i_right,x.dot)) items in 
   let rec aux rests=match rests with
   | []->None
-  | h::t->if tmp_items=(List.rev_map (fun x->(x.i_left,x.i_right,x.dot)) h.items) then Some h.id else aux t
+  | h::t->if same_list tmp_items (List.rev_map (fun x->(x.i_left,x.i_right,x.dot)) h.items) then Some h.id else aux t
   in aux states
 
 let calc_lr0_states grammer=
@@ -73,10 +73,6 @@ let calc_lr0_states grammer=
           else (update_next some_sym st_h next_id; add_one_state sym_t states added_states)
       in add_one_state symbols states st_t
   in let base=base_states grammer in add base base
-
-let rec pop list n=if n=0 then list else match list with
-  | []->[]
-  | _::t->pop t (n-1)
 
 let calc_first nulls firsts syms=
   let rec calc syms first=match syms with
@@ -117,7 +113,7 @@ let lr1_closure nulls firsts bases grammer=
       let prods_from_t=List.filter (fun x->x.p_left=T ts) grammer in 
       let items_from_t=List.rev_map (fun x->{
         i_left=x.p_left; i_right=x.p_right; dot=0; next=ref None; prod_kind=x.kind;
-        ahead=calc_first nulls firsts ((pop h.i_right (h.dot+1))@ !(h.ahead)) (* <- slow? *)
+        ahead=calc_first nulls firsts ((Util.pop h.i_right (h.dot+1))@ !(h.ahead)) (* <- slow? *)
       }) prods_from_t in 
       let (new_items,updates)=app_aheads items_from_t items [] [] in 
       extend (List.rev_append new_items items) (List.rev_append (List.rev_append new_items updates) t)
@@ -138,8 +134,12 @@ let calc_kernel lr0_states=
   | h::t->calc t (List.rev_append (kernel_from_items h) kernel)
   in calc lr0_states []
 
-let shift item=
-  {i_left=item.i_left; i_right=item.i_right; dot=item.dot+1; next=item.next; prod_kind=item.prod_kind; ahead=item.ahead}
+let shift id item lr0_states=
+  let id_state=List.find (fun x->x.id=id) lr0_states in 
+  let next=(List.find (
+    fun x->(x.i_left,x.i_right,x.dot)=(item.i_left,item.i_right,item.dot)
+  ) id_state.items).next in 
+  {i_left=item.i_left; i_right=item.i_right; dot=item.dot+1; next=next; prod_kind=item.prod_kind; ahead=item.ahead}
 
 let rec is_dest result dest=match dest with
   | []->result
@@ -147,47 +147,39 @@ let rec is_dest result dest=match dest with
     if List.mem (NT End) !(h.ahead) then is_dest (h::result) t
     else is_dest result t
 
-let spread_dests kernel grammer=
+let spread_dests lr0_states kernel grammer=
   let nulls=Slr.calc_nulls grammer [] in 
   let firsts=Slr.calc_firsts grammer nulls in 
   let rec aux ker dests=match ker with
   | []->dests
-  | {items=i;id=_}::t->
+  | {items=i;id=id}::t->
     match List.nth_opt i.i_right i.dot with
     | None->aux t ([]::dests)
     | Some(T _)->
       let closured=lr1_closure nulls firsts [i] grammer in 
-      let shifted=List.rev_map (fun x->shift x) closured in 
+      let shifted=List.rev_map (fun x->shift id x lr0_states) closured in 
       aux t (shifted::dests)
-    | Some _->let shifted=shift i in aux t ([shifted]::dests)
+    | Some _->let shifted=shift id i lr0_states in aux t ([shifted]::dests)
   in List.rev (aux kernel [])
 
-let rec spread_one_state grammer lr0_states kernel is_change state dest=match dest with
+let rec spread_one_state lr0_states kernel is_change state dest=match dest with
   | []->is_change
   | h::t->
-    let id_state=List.find (fun x->x.id=state.id) lr0_states in 
-    let id=let item=List.find (
-      fun x->(x.i_left,x.i_right,x.dot)=(h.i_left,h.i_right,h.dot-1)
-    ) id_state.items in Option.get !(item.next) in 
-    let ker=List.filter (fun x->x.id=id) kernel in 
+    let ker=List.filter (fun x->x.id=Option.get !(h.next)) kernel in 
     let ahead=(List.find (
       fun x->let i=x.items in (i.i_left,i.i_right,i.dot)=(h.i_left,h.i_right,h.dot)
       ) ker).items.ahead in 
     let prev= !ahead in 
-    ahead:=union !(state.items.ahead) (union !(h.ahead) !(ahead));
-    if same_list prev !ahead then spread_one_state grammer lr0_states kernel is_change state t
-    else spread_one_state grammer lr0_states kernel true state t
+    ahead:=union !(state.items.ahead) !(ahead);
+    if same_list prev !ahead then spread_one_state lr0_states kernel is_change state t
+    else spread_one_state lr0_states kernel true state t
 
 let spread lr0_states kernel grammer=
-  let dests=spread_dests kernel grammer in 
+  let dests=spread_dests lr0_states kernel grammer in 
   let rec init state dest=match dest with
   | []->()
   | h::t->
-    let id_state=List.find (fun x->x.id=state.id) lr0_states in 
-    let id=let item=List.find (
-      fun x->(x.i_left,x.i_right,x.dot)=(h.i_left,h.i_right,h.dot-1)
-    ) id_state.items in Option.get !(item.next) in 
-    let ker=List.filter (fun x->x.id=id) kernel in 
+    let ker=List.filter (fun x->x.id=Option.get !(h.next)) kernel in 
     let ahead= (List.find (
       fun x->let i=x.items in (i.i_left,i.i_right,i.dot)=(h.i_left,h.i_right,h.dot)
     ) ker).items.ahead in 
@@ -196,7 +188,7 @@ let spread lr0_states kernel grammer=
   let new_dests=List.map (is_dest []) dests in
   let is_change=ref true in 
   while !is_change do
-    is_change:=List.fold_left2 (spread_one_state grammer lr0_states kernel) false kernel new_dests;
+    is_change:=List.fold_left2 (spread_one_state lr0_states kernel) false kernel new_dests;
   done
 
 let rec is_conflict id table_col content=match table_col with
@@ -205,11 +197,11 @@ let rec is_conflict id table_col content=match table_col with
     if content.follow=h.follow&&content.action<>h.action then Lexer.err ("conflicted at "^(string_of_int id))
     else is_conflict id t content
 
-let rec remove_col ahead result=match ahead with
+let rec remove_end ahead result=match ahead with
   | []->result
   | h::t->
     if h=NT End then List.rev_append t result
-    else remove_col t (h::result)
+    else remove_end t (h::result)
 
 let table_one_col kernel state=
   let state_items=state.items in
@@ -223,7 +215,7 @@ let table_one_col kernel state=
         ) ker).items.ahead in
       let contents=List.rev_map (
         fun x->{follow=x;action=Reduce(h.i_left,List.length h.i_right,h.prod_kind)}
-        ) (remove_col !ahead []) in
+        ) (remove_end !ahead []) in
       List.iter (is_conflict state.id col_items) contents; one_col t (union contents col_items)
     | Some(id)->
       let content={follow=List.nth h.i_right h.dot;action=Shift(id)} in 

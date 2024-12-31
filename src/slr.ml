@@ -8,6 +8,8 @@ type content={follow:symbol;action:action}
 
 let state_id=let id=ref 0 in let count()= id:=!id+1;!id in count (* return 1,2,... *)
 
+let same_list=Util.same_list
+
 let closure base_items grammer=
   let rec extend items tmp=match tmp with
     | []->items
@@ -41,7 +43,7 @@ let next_id items states=
   let tmp_items=List.rev_map (fun x->{tl=x.i_left;tr=x.i_right;dot=x.dot}) items in 
   let rec aux rests=match rests with
   | []->None
-  | h::t->if tmp_items=(List.rev_map (fun x->{tl=x.i_left;tr=x.i_right;dot=x.dot}) h.items) then Some h.id else aux t
+  | h::t->if same_list tmp_items (List.rev_map (fun x->{tl=x.i_left;tr=x.i_right;dot=x.dot}) h.items) then Some h.id else aux t
   in aux states
 
 let calc_states grammer=
@@ -65,15 +67,11 @@ let calc_states grammer=
       in add_one_state symbols states st_t
   in let base=base_states grammer in add base base
 
-let rec uni_list list=match list with
-  | []->[]
-  | h::t->if List.mem h t then uni_list t else h::(uni_list t)
+let uni_list =Util.uni_list
 
-let uni_one a list=if List.mem a list then list else a::list
+let uni_one =Util.uni_one
 
-let rec union l1 l2=match l1 with
-  | [] -> l2
-  | h::t->if List.mem h l2 then union t l2 else union t (h::l2)
+let union=Util.union
 
 let rec is_null l nulls=match l with
   | []->true
@@ -91,10 +89,11 @@ type 't constr_set={sym:symbol;set:'t list ref}
 let rec first_constr_one constr prod_right nulls=match prod_right with
   | []->()
   | h::t->(match h with
-    | T(_) -> (if List.mem h !(constr.set) then () else constr.set:=h:: !(constr.set));
+    | T(_) -> 
+      constr.set:=uni_one h !(constr.set);
       if List.mem h nulls then first_constr_one constr t nulls else ()
-    | NT(_)->if List.mem h !(constr.set) then () else constr.set:=h:: !(constr.set)
-    | Eps->())
+    | NT(_)->constr.set:=uni_one h !(constr.set)
+    | Eps->first_constr_one constr t nulls)
 
 let first_constraint grammer nulls=
   let terminals=uni_list (List.rev_map (fun x->x.p_left) grammer) in 
@@ -114,7 +113,7 @@ let rec first_one sym set constraints=match set with
       let sym_constr=List.find (fun x->x.sym=h) constraints in
       union !(sym_constr.set) (first_one sym t constraints)
     | NT(_)->h::(first_one sym t constraints)
-    | Eps->Lexer.err "internal err : invalid pattern")
+    | Eps->Util.err "internal err : invalid pattern")
 
 let calc_firsts grammer nulls=let constraints=first_constraint grammer nulls in 
   let rec one_loop is_change constr=match constr with
@@ -201,7 +200,7 @@ let calc_follows grammer=
 let rec is_conflict table_col content=match table_col with
   | []->()
   | h::t->
-    if content.follow=h.follow&&content.action<>h.action then Lexer.err "conflicted!"
+    if content.follow=h.follow&&content.action<>h.action then Util.err "conflicted!"
     else is_conflict t content
 
 let table_one_col follows state=

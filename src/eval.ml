@@ -1,7 +1,7 @@
 open Syntax
 open Environment
 
-let err=Lexer.err
+let err=Util.err
 
 let bin_calc op val1 val2=match (op,val1,val2) with
   | (Add,IntV n1,IntV n2)->IntV (n1+n2)
@@ -38,6 +38,15 @@ let rec eval exp env=match exp with
   | Unary exp->(match eval exp env with
     | (IntV n,e)->(IntV (-n),e)
     | _->err "not int")
+  | Let(e1,e2)->
+    let (_,new_env)=eval e1 env in 
+    let (v,_)=eval e2 new_env in (v,env)
+  | Fun(id,e)->(FunV(id,e,env),env)
+  | Apply(e1,e2)->(match eval e1 env with
+    | (FunV(id,e,fenv),_)->
+      let (argv,_)=eval e2 env in 
+      let (retv,_)=eval e (Var(id,argv)::fenv) in (retv,env)
+    | _->err "not function")
   | Not exp->(match eval exp env with
     | (BoolV b,e)->(BoolV (not b),e)
     | _->err "not int")

@@ -21,6 +21,9 @@ type token_kind=
   | Then
   | Else
   | Not
+  | In
+  | Fun
+  | Arrow
   | End (* for lalr *)
 
 type token_line=Token of token_kind*token_line|End
@@ -55,6 +58,7 @@ let to_token str=if str="" then (None,"") else
     | "&&"->Some AndAnd
     | "||"->Some BarBar
     | "<>"->Some Angles
+    | "->"->Some Arrow
     | _->raise Not_found
    in (token,sub_str str 2)
    with _ ->
@@ -67,6 +71,8 @@ let to_token str=if str="" then (None,"") else
       | "then"
       | "else"->Some Else
       | "not"->Some Not
+      | "in"->Some In
+      | "fun"->Some Fun
       | _->Some (Ident w)
     in (token,s)
     else let token= match str.[0] with

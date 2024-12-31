@@ -23,6 +23,9 @@ let pp_token=function
   | Then->print_string "Then "
   | Else->print_string "Else "
   | Not->print_string "Not "
+  | In->print_string "in "
+  | Fun->print_string "Fun "
+  | Arrow->print_string "->"
   | End->print_string "$ "
 
 let rec lexer_pp tokens=match tokens with

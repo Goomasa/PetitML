@@ -61,11 +61,5 @@ let rec pp_contents items=match items with
     print_string(", action:");pp_action h.action;
     print_newline(); pp_contents t
 
-let states=calc_lr0_states new_grammer
-let kernel=calc_kernel states
-let dests=spread_dests kernel new_grammer
-let ()=pp_kernel kernel
-let ()=pp_spread dests
-let ()=spread states kernel new_grammer
-let()= pp_kernel kernel
-let ()=pp_states pp_contents (create_lalr_table new_grammer) 
+let ()=pp_states pp_items (calc_lr0_states new_grammer)
+(*let ()=pp_states pp_contents (create_lalr_table new_grammer)*)
