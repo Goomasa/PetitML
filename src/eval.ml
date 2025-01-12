@@ -41,7 +41,10 @@ let rec eval exp env=match exp with
   | Let(e1,e2)->
     let (_,new_env)=eval e1 env in 
     let (v,_)=eval e2 new_env in (v,env)
-  | Fun(id,e)->(FunV(id,e,env),env)
+  | Fun(args,e)->(match args with
+    | Args(Ident id,Null)->(FunV(id,e,env),env)
+    | Args(Ident id,next)->(FunV(id,Fun(next,e),env),env)
+    | _->err "invalid args")
   | Apply(e1,e2)->(match eval e1 env with
     | (FunV(id,e,fenv),_)->
       let (argv,_)=eval e2 env in 
@@ -50,3 +53,4 @@ let rec eval exp env=match exp with
   | Not exp->(match eval exp env with
     | (BoolV b,e)->(BoolV (not b),e)
     | _->err "not int")
+  | _->err("not implemented")
