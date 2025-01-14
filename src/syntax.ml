@@ -20,11 +20,19 @@ type prod_kind=
   | PK_fun
   | PK_app
   | PK_args
+  | PK_rec
+  | PK_defrec
+  | PK_list
+  | PK_empty
+  | PK_cons
+  | PK_seq
 
-type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small
+type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small|Cons
 
 type exp=ILit of int
   | BLit of bool
+  | LLit of exp*exp
+  | Seq of exp
   | Ident of string
   | Var of string*exp
   | Bin of bin_op*exp*exp
@@ -35,6 +43,7 @@ type exp=ILit of int
   | Unary of exp
   | Let of exp*exp
   | Fun of exp*exp
+  | Rec of exp*exp
   | Apply of exp*exp
   | Args of exp*exp
   | Null
@@ -65,6 +74,12 @@ let to_prod_kind str=match str with
   | "PK_fun"->PK_fun
   | "PK_app"->PK_app
   | "PK_args"->PK_args
+  | "PK_rec"->PK_rec
+  | "PK_defrec"->PK_defrec
+  | "PK_list"->PK_list
+  | "PK_empty"->PK_empty
+  | "PK_cons"->PK_cons
+  | "PK_seq"->PK_seq
   | _->Util.err "no such kind"
 
 let to_binOp prod_kind=match prod_kind with
@@ -75,12 +90,20 @@ let to_binOp prod_kind=match prod_kind with
   | PK_eq->Eq
   | PK_neq->Neq
   | PK_large->Large
+  | PK_cons->Cons
   | _->Small
 
 let ast_err id=Util.err ("ast: invalid pattern >> "^(string_of_int id))
 
+let create_llit trees=
+  let rec get_seq seq trees=match trees with
+  | Seq s::t->get_seq (s::seq) t
+  | rest->(seq,rest)
+  in let (seq,rest)=get_seq [] trees 
+  in (List.fold_left (fun l x->LLit(x,l)) Null seq)::rest
+
 let create_ast prod_kind token trees=match prod_kind with
-  | PK_null->trees
+  | PK_null | PK_top->trees
   | PK_lit->(match token with
     | Lexer.Num(n)->ILit(n)::trees
     | True->BLit(true)::trees
@@ -117,9 +140,20 @@ let create_ast prod_kind token trees=match prod_kind with
     | h1::h2::t->Apply(h2,h1)::t
     | _->ast_err 9)
   | PK_args->(match trees with
-    | h1::Args(a,b)::t->Args(h1,Args(a,b))::t
+    | Args(a,b)::h::t->Args(h,Args(a,b))::t
     | h::t->Args(h,Null)::t
     | _->ast_err 10)
+  | PK_defrec->(match trees with
+    | h1::h2::(Ident i)::t->Var(i,Rec(h2,h1))::t
+    | _->ast_err 11)
+  | PK_rec->(match trees with
+    | h1::h2::h3::(Ident i)::t->Let(Var(i,Rec(h3,h2)),h1)::t
+    | _->ast_err 12)
+  | PK_list->create_llit trees
+  | PK_seq->(match trees with
+    | h::t->Seq h::t
+    | _->ast_err 14)
+  | PK_empty->Null::trees
   | _->(match trees with
     | h1::h2::t -> Bin(to_binOp prod_kind,h2,h1)::t
-    | _->ast_err 11)
+    | _->ast_err 100)

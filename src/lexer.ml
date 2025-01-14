@@ -24,6 +24,11 @@ type token_kind=
   | In
   | Fun
   | Arrow
+  | Rec
+  | Semi
+  | LBracket
+  | RBracket
+  | ColCol
   | End (* for lalr *)
 
 type token_line=Token of token_kind*token_line|End
@@ -43,10 +48,10 @@ let rec get_num s n=
     else (s,n)
   with _->(s,n)
 
-let rec get_word word str=
+let rec get_keyword word str=
   try
     let i=Char.code str.[0] in 
-    if (i>=97&&i<=122)||(i>=65&&i<=90)||(i=95) then get_word (word^(Char.escaped str.[0])) (sub_str str 1)
+    if (i>=97&&i<=122)||(i>=65&&i<=90)||(i=95) then get_keyword (word^(Char.escaped str.[0])) (sub_str str 1)
     else (word,str)
   with _->(word,str)
 
@@ -59,20 +64,22 @@ let to_token str=if str="" then (None,"") else
     | "||"->Some BarBar
     | "<>"->Some Angles
     | "->"->Some Arrow
+    | "::"->Some ColCol
     | _->raise Not_found
    in (token,sub_str str 2)
    with _ ->
-    if is_word str.[0] then let (w,s)=get_word "" str in 
+    if is_word str.[0] then let (w,s)=get_keyword "" str in 
       let token=match w with
       | "true"->Some True
       | "false"->Some False
       | "let"->Some Let
       | "if"->Some If
-      | "then"
+      | "then"->Some Then
       | "else"->Some Else
       | "not"->Some Not
       | "in"->Some In
       | "fun"->Some Fun
+      | "rec"->Some Rec
       | _->Some (Ident w)
     in (token,s)
     else let token= match str.[0] with
@@ -86,6 +93,9 @@ let to_token str=if str="" then (None,"") else
     | '='->Some Equal
     | '<'->Some LAngle
     | '>'->Some RAngle
+    | ';'->Some Semi
+    | '['->Some LBracket
+    | ']'->Some RBracket
     | _-> err "lexer err"
    in (token,sub_str str 1)
 

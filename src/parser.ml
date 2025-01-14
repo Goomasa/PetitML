@@ -18,7 +18,7 @@ let search_table sym id=
       | NT(Ident _)-> x.follow=NT(Ident "")
       | _->x.follow=sym
     ) state.items).action
-  with _-> err "syntax err"
+  with _-> err ("syntax err: "^(string_of_int id))
 
 let lalr_parse code=
   let rec parse stack tokens prev_token trees=match tokens with
@@ -26,7 +26,7 @@ let lalr_parse code=
     let action=search_table Eps (head stack) in
     (match action with
     | Accept->trees
-    | _->err "syntax err")
+    | _->err "not accepted")
   | Token(h,t)->
     let action=search_table (NT(h)) (head stack) in 
     match action with

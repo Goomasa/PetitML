@@ -1,11 +1,15 @@
 Top := Exp ";;"      {PK_top}
-  | DefV ";;"       {PK_top},
+  | DefV ";;"       {PK_top}
+  | DefRec ";;"      {PK_top},
 
 DefV := "let" Id "=" Exp  {PK_defv}
   | "let" Id Args "=" Exp   {PK_defv},
 
+DefRec := "let" "rec" Id Args "=" Exp {PK_defrec},
+
 Exp := If           {PK_null}
   | Let             {PK_null}
+  | Rec             {PK_null}
   | Fun             {PK_null}
   | Or              {PK_null},
 
@@ -13,6 +17,8 @@ If := "if" Exp "then" Exp "else" Exp {PK_if},
 
 Let := "let" Id "=" Exp "in" Exp {PK_let}
   | "let" Id Args "=" Exp "in" Exp {PK_let},
+
+Rec := "let" "rec" Id Args "=" Exp "in" Exp {PK_rec},
 
 Fun := "fun" Args "->" Exp {PK_fun},
 
@@ -33,21 +39,29 @@ Add := Mul            {PK_null}
   | Add "+" Mul       {PK_add}
   | Add "-" Mul       {PK_sub},
 
-Mul := App            {PK_null}
-  | Mul "*" App       {PK_mul}
-  | Mul "/" App       {PK_div},
+Mul := Cons            {PK_null}
+  | Mul "*" Cons       {PK_mul}
+  | Mul "/" Cons       {PK_div},
 
-App := Prim           {PK_null}
-  | "not" Prim        {PK_not}
-  | App Prim          {PK_app},
+Cons := Apply           {PK_null}
+  | "not" Apply         {PK_not}
+  | Apply "::" Cons     {PK_cons},
+
+Apply := Prim           {PK_null}
+  | Apply Prim          {PK_app},
 
 Args := Id            {PK_args}
-  | Args Id           {PK_args},
+  | Id Args           {PK_args},
+
+List := Exp           {PK_seq}
+  | List ";" Exp      {PK_seq},
   
 Prim := "(" Exp ")"   {PK_null}
   | Int               {PK_lit}
   | "true"            {PK_lit}
   | "false"           {PK_lit}
-  | Id                {PK_null},
+  | Id                {PK_null}
+  | "[" List "]"      {PK_list}
+  | "[" "]"           {PK_empty},
 
 Id := Ident           {PK_lit}

@@ -47,8 +47,8 @@ let rec pp_spread spread=match spread with
   | h::t->pp_kernel_item h; pp_spread t
 
 let pp_action action=match action with
-  | Shift(id)->print_string (("Shift:(")^(string_of_int id)^(")"))
-  | Reduce(sym,num,_)->print_string ("Reduce:("); pp_symbol sym; print_int num; print_char(')')
+  | Shift(id)->print_string (("Shift(")^(string_of_int id)^(")"))
+  | Reduce(sym,num,_)->print_string ("Reduce("); pp_symbol sym; print_int num; print_char(')')
   | Accept->print_string("Accept")
 
 let rec pp_states pp_some states=match states with
@@ -61,5 +61,10 @@ let rec pp_contents items=match items with
     print_string(", action:");pp_action h.action;
     print_newline(); pp_contents t
 
+(*let states=calc_lr0_states new_grammer
+let kernel=calc_kernel states
+let dests=spread_dests states kernel new_grammer
+let ()=pp_spread dests
+let ()=spread states kernel new_grammer*)
 (*let ()=pp_states pp_items (calc_lr0_states new_grammer)*)
 let ()=pp_states pp_contents (create_lalr_table new_grammer)

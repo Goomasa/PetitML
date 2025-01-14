@@ -89,7 +89,7 @@ let rec app_ahead i items=match items with
   | []->(Some i,None)
   | h::t->
     if i.i_left=h.i_left&&i.i_right=h.i_right&&i.dot=h.dot
-      then (if same_list !(i.ahead) !(h.ahead) 
+      then (if Util.include_list !(i.ahead) !(h.ahead) 
         then (None,None)
         else (h.ahead:=union !(i.ahead) !(h.ahead); (None,Some h)))
     else app_ahead i t
@@ -107,7 +107,7 @@ let rec app_aheads new_items now_items rests updates=match new_items with
 let lr1_closure nulls firsts bases grammer=
   let rec extend items tmp=match tmp with
   | []->items
-  | h::t->
+  | h::t->  
     match List.nth_opt h.i_right h.dot with
     | Some(T ts)->
       let prods_from_t=List.filter (fun x->x.p_left=T ts) grammer in 
@@ -141,11 +141,11 @@ let shift id item lr0_states=
   ) id_state.items).next in 
   {i_left=item.i_left; i_right=item.i_right; dot=item.dot+1; next=next; prod_kind=item.prod_kind; ahead=item.ahead}
 
-let rec is_dest result dest=match dest with
+let rec extract_dest result dest=match dest with
   | []->result
   | h::t->
-    if List.mem (NT End) !(h.ahead) then is_dest (h::result) t
-    else is_dest result t
+    if List.mem (NT End) !(h.ahead) then extract_dest (h::result) t
+    else extract_dest result t
 
 let spread_dests lr0_states kernel grammer=
   let nulls=Slr.calc_nulls grammer [] in 
@@ -185,7 +185,7 @@ let spread lr0_states kernel grammer=
     ) ker).items.ahead in 
     ahead:=union !(ahead) !(h.ahead); init state t
   in List.iter2 init kernel dests;
-  let new_dests=List.map (is_dest []) dests in
+  let new_dests=List.map (extract_dest []) dests in
   let is_change=ref true in 
   while !is_change do
     is_change:=List.fold_left2 (spread_one_state lr0_states kernel) false kernel new_dests;
@@ -194,7 +194,8 @@ let spread lr0_states kernel grammer=
 let rec is_conflict id table_col content=match table_col with
   | []->()
   | h::t->
-    if content.follow=h.follow&&content.action<>h.action then Lexer.err ("conflicted at "^(string_of_int id))
+    if content.follow=h.follow&&content.action<>h.action 
+      then (print_string ("conflicted at "^(string_of_int id)); print_newline())
     else is_conflict id t content
 
 let rec remove_end ahead result=match ahead with

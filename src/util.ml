@@ -1,4 +1,6 @@
-let same_list l1 l2=List.for_all (fun x->List.mem x l2) l1
+let same_list l1 l2=(List.for_all (fun x->List.mem x l2) l1)&&(List.for_all (fun x->List.mem x l1) l2)
+
+let include_list l1 l2=List.for_all (fun x->List.mem x l2) l1
 
 let rec uni_list list=match list with
   | []->[]

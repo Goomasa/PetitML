@@ -26,6 +26,11 @@ let pp_token=function
   | In->print_string "in "
   | Fun->print_string "fun "
   | Arrow->print_string "->"
+  | Rec->print_string "rec "
+  | Semi->print_string "; "
+  | LBracket->print_string "[ "
+  | RBracket->print_string "] "
+  | ColCol->print_string ":: "
   | End->print_string "$ "
 
 let rec lexer_pp tokens=match tokens with
