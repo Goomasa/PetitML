@@ -32,7 +32,6 @@ type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small|Cons
 type exp=ILit of int
   | BLit of bool
   | LLit of exp*exp
-  | Seq of exp
   | Ident of string
   | Var of string*exp
   | Bin of bin_op*exp*exp
@@ -47,6 +46,7 @@ type exp=ILit of int
   | Apply of exp*exp
   | Args of exp*exp
   | Null
+  | Part (* partition for list *)
 
 type symbol=T of string|NT of Lexer.token_kind|Eps
 type prod={mutable p_left:symbol;mutable p_right:symbol list;mutable kind:prod_kind}
@@ -97,10 +97,11 @@ let ast_err id=Util.err ("ast: invalid pattern >> "^(string_of_int id))
 
 let create_llit trees=
   let rec get_seq seq trees=match trees with
-  | Seq s::t->get_seq (s::seq) t
-  | rest->(seq,rest)
+  | h::Part::t->(h::seq,t)
+  | h::t->get_seq (h::seq) t
+  | _->Util.err "invalid seq"
   in let (seq,rest)=get_seq [] trees 
-  in (List.fold_left (fun l x->LLit(x,l)) Null seq)::rest
+  in (List.fold_left (fun l x->LLit(x,l)) Null (List.rev seq))::rest
 
 let create_ast prod_kind token trees=match prod_kind with
   | PK_null | PK_top->trees
@@ -150,9 +151,7 @@ let create_ast prod_kind token trees=match prod_kind with
     | h1::h2::h3::(Ident i)::t->Let(Var(i,Rec(h3,h2)),h1)::t
     | _->ast_err 12)
   | PK_list->create_llit trees
-  | PK_seq->(match trees with
-    | h::t->Seq h::t
-    | _->ast_err 14)
+  | PK_seq->Part::trees
   | PK_empty->Null::trees
   | _->(match trees with
     | h1::h2::t -> Bin(to_binOp prod_kind,h2,h1)::t

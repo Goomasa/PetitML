@@ -53,15 +53,17 @@ Apply := Prim           {PK_null}
 Args := Id            {PK_args}
   | Id Args           {PK_args},
 
-List := Exp           {PK_seq}
-  | List ";" Exp      {PK_seq},
+List := Exp           {PK_null}
+  | Exp ";" List      {PK_null},
   
 Prim := "(" Exp ")"   {PK_null}
   | Int               {PK_lit}
   | "true"            {PK_lit}
   | "false"           {PK_lit}
   | Id                {PK_null}
-  | "[" List "]"      {PK_list}
+  | LBr List "]"      {PK_list}
   | "[" "]"           {PK_empty},
+
+LBr := "["            {PK_seq},
 
 Id := Ident           {PK_lit}
