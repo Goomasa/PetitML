@@ -27,7 +27,7 @@ type prod_kind=
   | PK_cons
   | PK_seq
 
-type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small|Cons
+type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small|And|Or|Cons
 
 type exp=ILit of int
   | BLit of bool
@@ -90,6 +90,8 @@ let to_binOp prod_kind=match prod_kind with
   | PK_eq->Eq
   | PK_neq->Neq
   | PK_large->Large
+  | PK_and->And
+  | PK_or->Or
   | PK_cons->Cons
   | _->Small
 
@@ -117,12 +119,6 @@ let create_ast prod_kind token trees=match prod_kind with
   | PK_not->(match trees with
     | h::t -> Not h::t
     | _->ast_err 2)
-  | PK_and->(match trees with
-    | h1::h2::t -> And(h2,h1)::t
-    | _->ast_err 3)
-  | PK_or->(match trees with
-    | h1::h2::t -> Or(h2,h1)::t
-    | _->ast_err 4)
   | PK_defv->(match trees with
     | h1::h2::(Ident i)::t->Var(i,Fun(h2,h1))::t
     | h::(Ident i)::t->Var(i,h)::t

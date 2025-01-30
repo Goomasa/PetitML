@@ -1,0 +1,104 @@
+open Syntax
+
+let err=Util.err
+
+type val_type=
+  | Int
+  | Bool
+  | Fun of val_type*val_type   (* type1 -> type2 *)
+  | List of val_type
+  | TyVar of int
+
+type tyenv=string*val_type list
+
+type subst_maps=int*val_type list
+
+let rec search_tyenv id tyenv=match tyenv with
+  | []->err "undefined variable"
+  | (i,ty)::t->if id=i then ty else search_tyenv id t
+
+let tyvar_id =let id=ref 0 in let count()=let prev= !id in id:=!id+1; prev in count
+
+let subst ty maps=
+  let rec subst_one ty map=let (tv_id,img)=map in 
+    match ty with
+    | TyVar id->if id=tv_id then img else ty  (* TyVar tv_id -> img *)
+    | Fun(t1,t2)->Fun(subst_one t1 map,subst_one t2 map)
+    | List t->List(subst_one t map)
+    | _->ty
+  in List.fold_left subst_one ty maps
+
+let rec occur_check tv_id ty=match ty with  (* ok -> true *)
+  | TyVar id->if id=tv_id then false else true
+  | Fun(t1,t2)->occur_check tv_id t1 || occur_check tv_id t2
+  | List t->occur_check tv_id t
+  | _->true
+
+let rec unify eqs=match eqs with  (* not tail-call *)
+  | []->[]
+  | (Fun(t1,t2),Fun(t3,t4))::t->unify ((t1,t3)::(t2,t4)::t)
+  | (List t1,List t2)::t->unify ((t1,t2)::t)
+  | (TyVar tv_id,ty)::t| (ty,TyVar tv_id)::t->
+    if ty=TyVar tv_id then unify t else
+    if occur_check tv_id ty then 
+      let map=(tv_id,ty) in
+      let new_eqs=List.rev_map (fun (x,y)->(subst x [map],subst y [map])) t in map::unify new_eqs
+    else err "error in occur-check"
+  | (t1,t2)::t->if t1=t2 then unify t else err "invalid type-equation"
+
+let maps_to_eqs maps=
+  let rec convert maps eqs=match maps with
+  | []->[]
+  | h::t->let (tv_id,ty)=h in convert t ((TyVar tv_id,ty)::eqs)
+  in convert maps []
+
+let bin_eqs op ty1 ty2=match op with
+  | Add|Sub|Mul|Div|Small|Large->([(ty1,Int);(ty2,Int)],Int)
+  | Eq|Neq->([(ty1,ty2)],Bool)
+  | And|Or->([(ty1,Bool);(ty2,Bool)],Bool)
+  | Cons->([(ty2,List ty1)],List ty1)
+
+let rec ty_eval exp tyenv=match exp with
+  | ILit _->(Int,tyenv,[])
+  | BLit _->(Bool,tyenv,[])
+  | Null->(List (TyVar (tyvar_id())),tyenv,[])
+  | LLit(first,next)->
+    let (ty1,_,map1)=ty_eval first tyenv in
+    let (ty2,_,map2)=ty_eval next tyenv in 
+    let new_eqs=(List ty1,ty2)::(maps_to_eqs map1)@(maps_to_eqs map2) in 
+    let new_map=unify new_eqs in (subst ty2 new_map,tyenv,new_map)
+  | Ident id->(search_tyenv id tyenv,tyenv,[])
+  | Var(id,e)->let (ty,env,_)=ty_eval e tyenv in (ty,(id,ty)::env,[])
+  | Bin(op,e1,e2)->
+    let (ty1,_,map1)=ty_eval e1 tyenv in 
+    let (ty2,_,map2)=ty_eval e2 tyenv in 
+    let (eqs,new_ty)=bin_eqs op ty1 ty2 in 
+    let new_eqs=(maps_to_eqs map1)@(maps_to_eqs map2)@eqs in 
+    let new_map=unify new_eqs in (new_ty,tyenv,new_map)
+  | If(e1,e2,e3)->
+    let (ty1,_,map1)=ty_eval e1 tyenv in 
+    let (ty2,_,map2)=ty_eval e2 tyenv in 
+    let (ty3,_,map3)=ty_eval e3 tyenv in 
+    let new_eqs=(ty1,Bool)::(ty2,ty3)::(maps_to_eqs map1)@(maps_to_eqs map2)@(maps_to_eqs map3) in 
+    let new_map=unify new_eqs in (subst ty2 new_map,tyenv,new_map)
+  | Unary e->
+    let (ty,_,map)=ty_eval e tyenv in 
+    let new_eqs=(ty,Int)::(maps_to_eqs map) in 
+    let new_map=unify new_eqs in (subst ty new_map,tyenv,new_map)
+  | Not e->
+    let (ty,_,map)=ty_eval e tyenv in 
+    let new_eqs=(ty,Bool)::(maps_to_eqs map) in 
+    let new_map=unify new_eqs in (subst ty new_map,tyenv,new_map)
+  | Let(e1,e2)->
+    let (_,env,map1)=ty_eval e1 tyenv in 
+    let (ty,_,map2)=ty_eval e2 env in 
+    let new_eqs=(maps_to_eqs map1)@(maps_to_eqs map2) in
+    let new_map=unify new_eqs in (subst ty new_map,tyenv,new_map)
+  | Fun(args,e)->
+    let rec eval_arg args env=let domty=TyVar (tyvar_id()) in 
+      match args with
+      | Args(Ident id,Null)->let (ty,_,map)=ty_eval e ((id,domty)::env) in (Fun(subst domty map,ty),map)
+      | Args(Ident id,next)->let (ty,map)=eval_arg next ((id,domty)::env) in (Fun(subst domty map,ty),map)
+      | _->err "invalid args"
+    in let (ty,new_map)=eval_arg args tyenv in (ty,tyenv,new_map)
+  | _->err "not implemented"

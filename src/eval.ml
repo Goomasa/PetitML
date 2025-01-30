@@ -14,6 +14,10 @@ let bin_calc op val1 val2=match (op,val1,val2) with
   | (Neq,BoolV b1,BoolV b2)->BoolV (b1<>b2)
   | (Large,IntV n1,IntV n2)->BoolV (n1>n2)
   | (Small,IntV n1,IntV n2)->BoolV (n1<n2)
+  | (And,BoolV false,_)->BoolV false
+  | (And,BoolV true,b)->b
+  | (Or,BoolV true,_)->BoolV true
+  | (Or,BoolV false,b)->b
   | (Cons,v1,v2)->ListV(v1,v2)
   | _->err "invalid type"
 
@@ -30,12 +34,6 @@ let rec eval exp env=match exp with
     let (v1,_)=eval e1 env in 
     let (v2,_)=eval e2 env in 
     (bin_calc op v1 v2,env)
-  | And(e1,e2)->(match eval e1 env with
-    | (BoolV true,_) -> eval e2 env
-    | _->(BoolV false,env))
-  | Or(e1,e2)->(match eval e1 env with
-    | (BoolV true,_) -> (BoolV true,env)
-    | _->eval e2 env)
   | If(e1,e2,e3)->(match eval e1 env with
     | (BoolV true,_) -> eval e2 env
     | (BoolV false,_)->eval e3 env

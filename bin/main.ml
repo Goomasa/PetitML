@@ -1,2 +1,2 @@
 open Petitml.App
-let () = cui [];;
+let () = cui [] [];;
