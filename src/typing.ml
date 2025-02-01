@@ -1,4 +1,5 @@
 open Syntax
+open Environment
 
 let err=Util.err
 
@@ -8,8 +9,6 @@ type val_type=
   | Fun of val_type*val_type   (* type1 -> type2 *)
   | List of val_type
   | TyVar of int
-
-type tyenv=string*val_type list
 
 type subst_maps=int*val_type list
 
@@ -42,15 +41,15 @@ let rec unify eqs=match eqs with  (* not tail-call *)
     if ty=TyVar tv_id then unify t else
     if occur_check tv_id ty then 
       let map=(tv_id,ty) in
-      let new_eqs=List.rev_map (fun (x,y)->(subst x [map],subst y [map])) t in map::unify new_eqs
+      let new_eqs=List.map (fun (x,y)->(subst x [map],subst y [map])) t in map::unify new_eqs
     else err "error in occur-check"
   | (t1,t2)::t->if t1=t2 then unify t else err "invalid type-equation"
 
 let maps_to_eqs maps=
-  let rec convert maps eqs=match maps with
+  let rec convert maps=match maps with
   | []->[]
-  | h::t->let (tv_id,ty)=h in convert t ((TyVar tv_id,ty)::eqs)
-  in convert maps []
+  | (tv_id,ty)::t->(TyVar tv_id,ty)::convert t
+  in convert maps
 
 let bin_eqs op ty1 ty2=match op with
   | Add|Sub|Mul|Div|Small|Large->([(ty1,Int);(ty2,Int)],Int)
@@ -67,7 +66,7 @@ let rec ty_eval exp tyenv=match exp with
     let (ty2,_,map2)=ty_eval next tyenv in 
     let new_eqs=(List ty1,ty2)::(maps_to_eqs map1)@(maps_to_eqs map2) in 
     let new_map=unify new_eqs in (subst ty2 new_map,tyenv,new_map)
-  | Ident id->(search_tyenv id tyenv,tyenv,[])
+  | Ident id->(search_env id tyenv,tyenv,[])
   | Var(id,e)->let (ty,env,_)=ty_eval e tyenv in (ty,(id,ty)::env,[])
   | Bin(op,e1,e2)->
     let (ty1,_,map1)=ty_eval e1 tyenv in 
@@ -101,4 +100,24 @@ let rec ty_eval exp tyenv=match exp with
       | Args(Ident id,next)->let (ty,map)=eval_arg next ((id,domty)::env) in (Fun(subst domty map,ty),map)
       | _->err "invalid args"
     in let (ty,new_map)=eval_arg args tyenv in (ty,tyenv,new_map)
+  | Rec(id,args,e)->
+    let ret_ty=TyVar (tyvar_id()) in 
+    let rec eval_arg args env=let domty=TyVar (tyvar_id()) in 
+      match args with
+      | Args(Ident arg_id,Null)->(Fun(domty,ret_ty),(arg_id,domty)::env)
+      | Args(Ident arg_id,next)->let (ty,new_env)=eval_arg next ((arg_id,domty)::env) in (Fun(domty,ty),new_env)
+      | _->err "invalid args"
+    in let (rec_ty,rec_env)=eval_arg args tyenv in 
+    let (ty,_,map)=ty_eval e ((id,rec_ty)::rec_env) in 
+    let new_eqs=(ret_ty,ty)::(maps_to_eqs map) in 
+    let new_map=unify new_eqs in (subst rec_ty new_map,tyenv,map)
+  | Apply(e1,e2)->
+    let (fty,_,fmap)=ty_eval e1 tyenv in 
+    let (ty,map)=tyeval_app fty e2 (maps_to_eqs fmap) tyenv in (ty,tyenv,map)
   | _->err "not implemented"
+and tyeval_app funty app eqs tyenv=match app with
+  | []->let new_map=unify eqs in (subst funty new_map,new_map)
+  | h::t->(match funty with
+    | Fun(ty1,ty2)-> 
+      let (ty,_,map)=ty_eval h tyenv in tyeval_app ty2 t ((ty1,ty)::(maps_to_eqs map)@eqs) tyenv
+    | _->err "invalid application")

@@ -42,8 +42,8 @@ type exp=ILit of int
   | Unary of exp
   | Let of exp*exp
   | Fun of exp*exp
-  | Rec of exp*exp
-  | Apply of exp*exp
+  | Rec of string*exp*exp
+  | Apply of exp*(exp list)
   | Args of exp*exp
   | Null
   | Part (* partition for list *)
@@ -134,17 +134,18 @@ let create_ast prod_kind token trees=match prod_kind with
     | h1::h2::t->Fun(h2,h1)::t
     | _->ast_err 8)
   | PK_app->(match trees with
-    | h1::h2::t->Apply(h2,h1)::t
+    | h::Apply(a,b)::t->Apply(a,b@[h])::t
+    | h1::h2::t->Apply(h2,[h1])::t
     | _->ast_err 9)
   | PK_args->(match trees with
     | Args(a,b)::h::t->Args(h,Args(a,b))::t
     | h::t->Args(h,Null)::t
     | _->ast_err 10)
   | PK_defrec->(match trees with
-    | h1::h2::(Ident i)::t->Var(i,Rec(h2,h1))::t
+    | h1::h2::(Ident i)::t->Var(i,Rec(i,h2,h1))::t
     | _->ast_err 11)
   | PK_rec->(match trees with
-    | h1::h2::h3::(Ident i)::t->Let(Var(i,Rec(h3,h2)),h1)::t
+    | h1::h2::h3::(Ident i)::t->Let(Var(i,Rec(i,h3,h2)),h1)::t
     | _->ast_err 12)
   | PK_list->create_llit trees
   | PK_seq->Part::trees

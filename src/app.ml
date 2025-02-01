@@ -14,7 +14,7 @@ let rec print_type ty=match ty with
     if id<26 then () else print_int (id/26)
 
 let rec print_lit value=match value with
-  | Environment.IntV n-> print_int n
+  | IntV n-> print_int n
   | BoolV true->print_string "true"
   | BoolV false->print_string "false"
   | FunV _ | RecV _->print_string "<fun>"
@@ -29,7 +29,7 @@ and print_list list=match list with
 let rec pp_results trees env tyenv=match trees with
   | []->(env ,tyenv)
   | h::t->
-    let (ty,new_tyenv,_)=ty_eval h tyenv in 
+    let (ty,new_tyenv,_)=ty_eval h tyenv in
     let (value,new_env)=eval h env in 
     (match value with
       | VarV(id,v)->print_string ("val "^id^" : "); print_type ty; print_string " = "; print_lit v
