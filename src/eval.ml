@@ -3,6 +3,7 @@ open Environment
 
 type value=IntV of int
   | BoolV of bool
+  | StringV of string
   | VarV of string*value
   | FunV of string*exp*(value env)
   | RecV of string*exp*(value env ref)
@@ -10,6 +11,11 @@ type value=IntV of int
   | ListV of value*value
 
 let err=Util.err
+
+let rec append l1 l2=match l1 with
+  | EmptyV->l2
+  | ListV(h,t)->ListV(h,append t l2)
+  | _->err "invalid append"
 
 let bin_calc op val1 val2=match (op,val1,val2) with
   | (Add,IntV n1,IntV n2)->IntV (n1+n2)
@@ -27,11 +33,14 @@ let bin_calc op val1 val2=match (op,val1,val2) with
   | (Or,BoolV true,_)->BoolV true
   | (Or,BoolV false,b)->b
   | (Cons,v1,v2)->ListV(v1,v2)
+  | (App,v1,v2)->append v1 v2
+  | (Cat,StringV s1,StringV s2)->StringV(s1^s2)
   | _->err "invalid type"
 
 let rec eval env exp=match exp with
   | ILit n->(IntV n,env)
   | BLit b->(BoolV b,env)
+  | SLit s->(StringV s,env)
   | Null->(EmptyV,env)
   | LLit(first,next)->
     let (fv,_)=eval env first in 

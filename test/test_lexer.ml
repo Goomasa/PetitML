@@ -3,6 +3,7 @@ open Petitml.Lexer
 let pp_token=function
   | Num n->print_string (string_of_int n)
   | Ident _->print_string "var "
+  | String s->print_string (s^" ")
   | Plus->print_string "+ "
   | Minus->print_string "- "
   | Star->print_string "* "
@@ -35,6 +36,8 @@ let pp_token=function
   | With->print_string "with "
   | Bar->print_string "| "
   | And->print_string "and "
+  | Tilde->print_string "^ "
+  | At->print_string "@ "
   | End->print_string "$ "
 
 let rec lexer_pp tokens=match tokens with

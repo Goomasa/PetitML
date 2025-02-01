@@ -18,7 +18,7 @@ type prod_kind=
   | PK_if
   | PK_let
   | PK_fun
-  | PK_app
+  | PK_apply
   | PK_args
   | PK_rec
   | PK_defrec
@@ -28,11 +28,14 @@ type prod_kind=
   | PK_seq
   | PK_match
   | PK_letand
+  | PK_append
+  | PK_cat
 
-type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small|And|Or|Cons
+type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small|And|Or|Cons|App|Cat
 
 type exp=ILit of int
   | BLit of bool
+  | SLit of string
   | LLit of exp*exp
   | Ident of string
   | Var of string*exp
@@ -76,7 +79,7 @@ let to_prod_kind str=match str with
   | "PK_if"->PK_if
   | "PK_let"->PK_let
   | "PK_fun"->PK_fun
-  | "PK_app"->PK_app
+  | "PK_apply"->PK_apply
   | "PK_args"->PK_args
   | "PK_rec"->PK_rec
   | "PK_defrec"->PK_defrec
@@ -86,6 +89,8 @@ let to_prod_kind str=match str with
   | "PK_seq"->PK_seq
   | "PK_match"->PK_match
   | "PK_letand"->PK_letand
+  | "PK_append"->PK_append
+  | "PK_cat"->PK_cat
   | _->Util.err "no such kind"
 
 let to_binOp prod_kind=match prod_kind with
@@ -99,6 +104,8 @@ let to_binOp prod_kind=match prod_kind with
   | PK_and->And
   | PK_or->Or
   | PK_cons->Cons
+  | PK_append->App
+  | PK_cat->Cat
   | _->Small
 
 let ast_err id=Util.err ("ast: invalid pattern >> "^(string_of_int id))
@@ -118,6 +125,7 @@ let create_ast prod_kind token trees=match prod_kind with
     | True->BLit(true)::trees
     | False->BLit(false)::trees
     | Ident i->Ident(i)::trees
+    | String s->SLit s::trees
     | _->ast_err 0)
   | PK_unary->(match trees with
     | h::t->Unary h::t
@@ -139,7 +147,7 @@ let create_ast prod_kind token trees=match prod_kind with
   | PK_fun->(match trees with
     | h1::h2::t->Fun(h2,h1)::t
     | _->ast_err 8)
-  | PK_app->(match trees with
+  | PK_apply->(match trees with
     | h::Apply(a,b)::t->Apply(a,b@[h])::t
     | h1::h2::t->Apply(h2,[h1])::t
     | _->ast_err 9)

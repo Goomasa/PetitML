@@ -1,6 +1,7 @@
 type token_kind=
   | Num of int
   | Ident of string
+  | String of string
   | Plus
   | Minus
   | Star
@@ -33,6 +34,8 @@ type token_kind=
   | With
   | Bar
   | And
+  | Tilde
+  | At
   | End (* for lalr *)
 
 type token_line=Token of token_kind*token_line|End
@@ -58,6 +61,13 @@ let rec get_keyword word str=
     if (i>=97&&i<=122)||(i>=65&&i<=90)||(i=95) then get_keyword (word^(Char.escaped str.[0])) (sub_str str 1)
     else (word,str)
   with _->(word,str)
+
+let rec get_string word str=
+  try
+    let i=Char.code str.[0] in
+    if i<>34 then get_string (word^(Char.escaped str.[0])) (sub_str str 1)
+    else (Some (String word),sub_str str 1) 
+  with _->err "invalid string"
 
 let to_token str=if str="" then (None,"") else
    try
@@ -89,7 +99,8 @@ let to_token str=if str="" then (None,"") else
       | "and"->Some And
       | _->Some (Ident w)
     in (token,s)
-    else let token= match str.[0] with
+    else if str.[0]='"' then get_string "" (sub_str str 1)
+    else let token=match str.[0] with
     | ' '->None
     | '+'->Some Plus
     | '-'->Some Minus
@@ -104,6 +115,8 @@ let to_token str=if str="" then (None,"") else
     | '['->Some LBracket
     | ']'->Some RBracket
     | '|'->Some Bar
+    | '^'->Some Tilde
+    | '@'->Some At
     | _-> err "lexer err"
    in (token,sub_str str 1)
 

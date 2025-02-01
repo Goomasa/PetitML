@@ -6,6 +6,7 @@ let err=Util.err
 type val_type=
   | Int
   | Bool
+  | String
   | Fun of val_type*val_type   (* type1 -> type2 *)
   | List of val_type
   | TyVar of int
@@ -56,10 +57,13 @@ let bin_eqs op ty1 ty2=match op with
   | Eq|Neq->([(ty1,ty2)],Bool)
   | And|Or->([(ty1,Bool);(ty2,Bool)],Bool)
   | Cons->([(ty2,List ty1)],List ty1)
+  | App->([(ty1,ty2)],ty1)
+  | Cat->([(ty1,String);(ty2,String)],String)
 
 let rec ty_eval tyenv exp=match exp with
   | ILit _->(Int,tyenv,[])
   | BLit _->(Bool,tyenv,[])
+  | SLit _->(String,tyenv,[])
   | Null->(List (TyVar (tyvar_id())),tyenv,[])
   | LLit(first,next)->
     let (ty1,_,map1)=ty_eval tyenv first in

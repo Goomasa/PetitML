@@ -42,6 +42,7 @@ let new_grammer=
         | _->Util.err "mlr err")
       | _->let token= (match h1 with
         | "Int" -> NT (Num 0)
+        | "String"->NT (String "")
         | "Eps"->Eps
         | "Ident"->NT (Ident "")
         | _->T h1)

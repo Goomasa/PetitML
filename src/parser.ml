@@ -16,6 +16,7 @@ let search_table sym id=
       fun x->match sym with
       | NT(Num _) -> x.follow=NT(Num 0)
       | NT(Ident _)-> x.follow=NT(Ident "")
+      | NT(String _)->x.follow=NT(String "")
       | _->x.follow=sym
     ) state.items).action
   with _-> err ("syntax err: "^(string_of_int id))

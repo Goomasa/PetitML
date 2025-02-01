@@ -5,6 +5,7 @@ open Typing
 let rec print_type ty=match ty with
   | Int->print_string "int"
   | Bool->print_string "bool"
+  | String->print_string "string"
   | Fun(t1,t2)->(match t1 with
     | Int|Bool|TyVar _->print_type t1; print_string " -> "; print_type t2
     | _->print_char '('; print_type t1; print_string ") ->"; print_type t2)
@@ -17,6 +18,7 @@ let rec print_lit value=match value with
   | IntV n-> print_int n
   | BoolV true->print_string "true"
   | BoolV false->print_string "false"
+  | StringV s->print_string ("\""^s^"\"")
   | FunV _ | RecV _->print_string "<fun>"
   | EmptyV->print_string "[]"
   | ListV _->print_string "["; print_list value; print_string "]"
