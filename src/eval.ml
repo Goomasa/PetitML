@@ -29,29 +29,29 @@ let bin_calc op val1 val2=match (op,val1,val2) with
   | (Cons,v1,v2)->ListV(v1,v2)
   | _->err "invalid type"
 
-let rec eval exp env=match exp with
+let rec eval env exp=match exp with
   | ILit n->(IntV n,env)
   | BLit b->(BoolV b,env)
   | Null->(EmptyV,env)
   | LLit(first,next)->
-    let (fv,_)=eval first env in 
-    let (v,_)=eval next env in (ListV(fv,v),env)
+    let (fv,_)=eval env first in 
+    let (v,_)=eval env next in (ListV(fv,v),env)
   | Ident id->let v=search_env id env in (v,env)
-  | Var(id,e)->let (v,_)=eval e env in let value=VarV(id,v) in (value,(id,v)::env)
+  | Var(id,e)->let (v,_)=eval env e in let value=VarV(id,v) in (value,(id,v)::env)
   | Bin(op,e1,e2)->
-    let (v1,_)=eval e1 env in 
-    let (v2,_)=eval e2 env in 
+    let (v1,_)=eval env e1 in 
+    let (v2,_)=eval env e2 in 
     (bin_calc op v1 v2,env)
-  | If(e1,e2,e3)->(match eval e1 env with
-    | (BoolV true,_) -> eval e2 env
-    | (BoolV false,_)->eval e3 env
+  | If(e1,e2,e3)->(match eval env e1 with
+    | (BoolV true,_) -> eval env e2
+    | (BoolV false,_)->eval env e3
     | _->err "no condition")
-  | Unary exp->(match eval exp env with
+  | Unary exp->(match eval env exp with
     | (IntV n,e)->(IntV (-n),e)
     | _->err "not int")
   | Let(e1,e2)->
-    let (_,new_env)=eval e1 env in 
-    let (v,_)=eval e2 new_env in (v,env)
+    let (_,new_env)=eval env e1 in 
+    let (v,_)=eval new_env e2 in (v,env)
   | Fun(args,e)->(match args with
     | Args(Ident arg_id,Null)->(FunV(arg_id,e,env),env)
     | Args(Ident arg_id,next)->(FunV(arg_id,Fun(next,e),env),env)
@@ -61,34 +61,34 @@ let rec eval exp env=match exp with
     | Args(Ident arg_id,next)->(RecV(arg_id,Rec(id,next,e),ref env),env)
     | _->err "invalid args")
   | Apply(Ident id,e)->
-    let (v,_)=eval (Ident id) env in 
+    let (v,_)=eval env (Ident id) in 
     (match v with
     | FunV(_,_,fenv)->
       let (funv,new_fenv)=eval_app v e fenv env in 
-      let (retv,_)=eval funv new_fenv in (retv,env)
+      let (retv,_)=eval new_fenv funv in (retv,env)
     | RecV(arg_id,next,fenv)->
       let (recv,new_fenv)=eval_app v e !fenv env in 
       let rec_env=(id,RecV(arg_id,next,fenv))::new_fenv in 
-      let (retv,_)=eval recv rec_env in (retv,env)
+      let (retv,_)=eval rec_env recv in (retv,env)
     | _->err "not function")
-  | Not exp->(match eval exp env with
+  | Not exp->(match eval env exp with
     | (BoolV b,e)->(BoolV (not b),e)
     | _->err "not int")
   | Match(e1,e2,id1,id2,e3)->
-    let (lv,_)=eval e1 env in 
+    let (lv,_)=eval env e1 in 
     let (retv,_)=match lv with
-    | EmptyV -> eval e2 env
-    | ListV(a,b)->eval e3 ((id1,a)::(id2,b)::env)
+    | EmptyV -> eval env e2
+    | ListV(a,b)->eval ((id1,a)::(id2,b)::env) e3
     | _->err "invalid match"
     in (retv,env)
   | _->err("not implemented")
 and eval_app funv apps fenv env=match apps with
   | h::[]->(match funv with
-    | FunV(arg_id,e,_)|RecV(arg_id,e,_)->let (v,_)=eval h env in (e,(arg_id,v)::fenv)
+    | FunV(arg_id,e,_)|RecV(arg_id,e,_)->let (v,_)=eval env h in (e,(arg_id,v)::fenv)
     | _->err "invalid application")
   | h::t->(match funv with
     | FunV(arg_id,next,_)|RecV(arg_id,next,_)->
-      let (v,_)=eval h env in
-      let (nextfv,_)=eval next env in eval_app nextfv t ((arg_id,v)::fenv) env
+      let (v,_)=eval env h in
+      let (nextfv,_)=eval env next in eval_app nextfv t ((arg_id,v)::fenv) env
     | _->err "invalid application")
   | _->err "invalid pattern"

@@ -32,6 +32,7 @@ type token_kind=
   | Match
   | With
   | Bar
+  | And
   | End (* for lalr *)
 
 type token_line=Token of token_kind*token_line|End
@@ -85,6 +86,7 @@ let to_token str=if str="" then (None,"") else
       | "rec"->Some Rec
       | "match"->Some Match
       | "with"->Some With
+      | "and"->Some And
       | _->Some (Ident w)
     in (token,s)
     else let token= match str.[0] with

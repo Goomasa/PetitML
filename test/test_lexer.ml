@@ -34,6 +34,7 @@ let pp_token=function
   | Match->print_string "match "
   | With->print_string "with "
   | Bar->print_string "| "
+  | And->print_string "and "
   | End->print_string "$ "
 
 let rec lexer_pp tokens=match tokens with

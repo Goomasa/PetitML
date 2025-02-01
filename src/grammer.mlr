@@ -1,9 +1,15 @@
 Top := Exp ";;"      {PK_top}
-  | DefV ";;"       {PK_top}
+  | LetSeq ";;"       {PK_top}
   | DefRec ";;"      {PK_top},
 
-DefV := "let" Id "=" Exp  {PK_defv}
-  | "let" Id Args "=" Exp   {PK_defv},
+LetSeq := "let" LetAnd   {PK_null}
+  | LetSeq "let" LetAnd  {PK_null},
+
+LetAnd := DefV        {PK_null}
+  | DefV "and" LetAnd {PK_letand},
+
+DefV := Id "=" Exp    {PK_defv}
+  | Id Args "=" Exp   {PK_defv},
 
 DefRec := "let" "rec" Id Args "=" Exp {PK_defrec},
 

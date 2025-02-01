@@ -57,46 +57,46 @@ let bin_eqs op ty1 ty2=match op with
   | And|Or->([(ty1,Bool);(ty2,Bool)],Bool)
   | Cons->([(ty2,List ty1)],List ty1)
 
-let rec ty_eval exp tyenv=match exp with
+let rec ty_eval tyenv exp=match exp with
   | ILit _->(Int,tyenv,[])
   | BLit _->(Bool,tyenv,[])
   | Null->(List (TyVar (tyvar_id())),tyenv,[])
   | LLit(first,next)->
-    let (ty1,_,map1)=ty_eval first tyenv in
-    let (ty2,_,map2)=ty_eval next tyenv in 
+    let (ty1,_,map1)=ty_eval tyenv first in
+    let (ty2,_,map2)=ty_eval tyenv next in 
     let new_eqs=(List ty1,ty2)::(maps_to_eqs map1)@(maps_to_eqs map2) in 
     let new_map=unify new_eqs in (subst ty2 new_map,tyenv,new_map)
   | Ident id->(search_env id tyenv,tyenv,[])
-  | Var(id,e)->let (ty,env,_)=ty_eval e tyenv in (ty,(id,ty)::env,[])
+  | Var(id,e)->let (ty,env,_)=ty_eval tyenv e in (ty,(id,ty)::env,[])
   | Bin(op,e1,e2)->
-    let (ty1,_,map1)=ty_eval e1 tyenv in 
-    let (ty2,_,map2)=ty_eval e2 tyenv in 
+    let (ty1,_,map1)=ty_eval tyenv e1  in 
+    let (ty2,_,map2)=ty_eval tyenv e2 in 
     let (eqs,new_ty)=bin_eqs op ty1 ty2 in 
     let new_eqs=(maps_to_eqs map1)@(maps_to_eqs map2)@eqs in 
     let new_map=unify new_eqs in (new_ty,tyenv,new_map)
   | If(e1,e2,e3)->
-    let (ty1,_,map1)=ty_eval e1 tyenv in 
-    let (ty2,_,map2)=ty_eval e2 tyenv in 
-    let (ty3,_,map3)=ty_eval e3 tyenv in 
+    let (ty1,_,map1)=ty_eval tyenv e1 in 
+    let (ty2,_,map2)=ty_eval tyenv e2 in 
+    let (ty3,_,map3)=ty_eval tyenv e3 in 
     let new_eqs=(ty1,Bool)::(ty2,ty3)::(maps_to_eqs map1)@(maps_to_eqs map2)@(maps_to_eqs map3) in 
     let new_map=unify new_eqs in (subst ty2 new_map,tyenv,new_map)
   | Unary e->
-    let (ty,_,map)=ty_eval e tyenv in 
+    let (ty,_,map)=ty_eval tyenv e in 
     let new_eqs=(ty,Int)::(maps_to_eqs map) in 
     let new_map=unify new_eqs in (subst ty new_map,tyenv,new_map)
   | Not e->
-    let (ty,_,map)=ty_eval e tyenv in 
+    let (ty,_,map)=ty_eval tyenv e in 
     let new_eqs=(ty,Bool)::(maps_to_eqs map) in 
     let new_map=unify new_eqs in (subst ty new_map,tyenv,new_map)
   | Let(e1,e2)->
-    let (_,env,map1)=ty_eval e1 tyenv in 
-    let (ty,_,map2)=ty_eval e2 env in 
+    let (_,env,map1)=ty_eval tyenv e1 in 
+    let (ty,_,map2)=ty_eval env e2 in 
     let new_eqs=(maps_to_eqs map1)@(maps_to_eqs map2) in
     let new_map=unify new_eqs in (subst ty new_map,tyenv,new_map)
   | Fun(args,e)->
     let rec eval_arg args env=let domty=TyVar (tyvar_id()) in 
       match args with
-      | Args(Ident id,Null)->let (ty,_,map)=ty_eval e ((id,domty)::env) in (Fun(subst domty map,ty),map)
+      | Args(Ident id,Null)->let (ty,_,map)=ty_eval ((id,domty)::env) e in (Fun(subst domty map,ty),map)
       | Args(Ident id,next)->let (ty,map)=eval_arg next ((id,domty)::env) in (Fun(subst domty map,ty),map)
       | _->err "invalid args"
     in let (ty,new_map)=eval_arg args tyenv in (ty,tyenv,new_map)
@@ -108,17 +108,17 @@ let rec ty_eval exp tyenv=match exp with
       | Args(Ident arg_id,next)->let (ty,new_env)=eval_arg next ((arg_id,domty)::env) in (Fun(domty,ty),new_env)
       | _->err "invalid args"
     in let (rec_ty,rec_env)=eval_arg args tyenv in 
-    let (ty,_,map)=ty_eval e ((id,rec_ty)::rec_env) in 
+    let (ty,_,map)=ty_eval ((id,rec_ty)::rec_env) e in 
     let new_eqs=(ret_ty,ty)::(maps_to_eqs map) in 
     let new_map=unify new_eqs in (subst rec_ty new_map,tyenv,map)
   | Apply(e1,e2)->
-    let (fty,_,fmap)=ty_eval e1 tyenv in 
+    let (fty,_,fmap)=ty_eval tyenv e1 in 
     let (ty,map)=tyeval_app fty e2 (maps_to_eqs fmap) tyenv in (ty,tyenv,map)
   | Match(e1,e2,id1,id2,e3)->
-    let (ty1,_,map1)=ty_eval e1 tyenv in 
-    let (ty2,_,map2)=ty_eval e2 tyenv in 
+    let (ty1,_,map1)=ty_eval tyenv e1 in 
+    let (ty2,_,map2)=ty_eval tyenv e2 in 
     let domty1=TyVar(tyvar_id()) and domty2=TyVar(tyvar_id()) in 
-    let (ty3,_,map3)=ty_eval e3 ((id1,domty1)::(id2,domty2)::tyenv) in 
+    let (ty3,_,map3)=ty_eval ((id1,domty1)::(id2,domty2)::tyenv) e3 in 
     let new_eqs=(ty1,List domty1)::(ty1,domty2)::(ty2,ty3)::(maps_to_eqs map1)@(maps_to_eqs map2)@(maps_to_eqs map3) in 
     let new_map=unify new_eqs in (subst ty2 new_map,tyenv,new_map)
   | _->err "not implemented"
@@ -126,5 +126,5 @@ and tyeval_app funty app eqs tyenv=match app with
   | []->let new_map=unify eqs in (subst funty new_map,new_map)
   | h::t->(match funty with
     | Fun(ty1,ty2)-> 
-      let (ty,_,map)=ty_eval h tyenv in tyeval_app ty2 t ((ty1,ty)::(maps_to_eqs map)@eqs) tyenv
+      let (ty,_,map)=ty_eval tyenv h in tyeval_app ty2 t ((ty1,ty)::(maps_to_eqs map)@eqs) tyenv
     | _->err "invalid application")

@@ -27,6 +27,7 @@ type prod_kind=
   | PK_cons
   | PK_seq
   | PK_match
+  | PK_letand
 
 type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small|And|Or|Cons
 
@@ -48,6 +49,7 @@ type exp=ILit of int
   | Args of exp*exp
   | Null
   | Match of exp*exp*string*string*exp
+  | LetAnd of exp list
   | Part (* partition for list *)
 
 type symbol=T of string|NT of Lexer.token_kind|Eps
@@ -83,6 +85,7 @@ let to_prod_kind str=match str with
   | "PK_cons"->PK_cons
   | "PK_seq"->PK_seq
   | "PK_match"->PK_match
+  | "PK_letand"->PK_letand
   | _->Util.err "no such kind"
 
 let to_binOp prod_kind=match prod_kind with
@@ -156,6 +159,10 @@ let create_ast prod_kind token trees=match prod_kind with
   | PK_match->(match trees with
     | h1::(Ident id1)::(Ident id2)::h2::h3::t->Match(h3,h2,id2,id1,h1)::t
     | _->ast_err 13)
+  | PK_letand->(match trees with
+    | LetAnd l::h::t->LetAnd (h::l)::t
+    | h1::h2::t->LetAnd [h2;h1]::t
+    | _->ast_err 14)
   | _->(match trees with
     | h1::h2::t -> Bin(to_binOp prod_kind,h2,h1)::t
     | _->ast_err 100)

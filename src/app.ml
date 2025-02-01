@@ -1,4 +1,4 @@
-open Parser
+open Syntax
 open Eval
 open Typing
 
@@ -26,21 +26,31 @@ and print_list list=match list with
   | ListV(v,next)->print_lit v; print_string "; "; print_list next
   | _->print_string "??"
 
-let rec pp_results trees env tyenv=match trees with
-  | []->(env ,tyenv)
-  | h::t->
-    let (ty,new_tyenv,_)=ty_eval h tyenv in
-    let (value,new_env)=eval h env in 
-    (match value with
-      | VarV(id,v)->print_string ("val "^id^" : "); print_type ty; print_string " = "; print_lit v
-      | FunV _ | RecV _->print_string "- : "; print_type ty; print_string " = <fun>"
-      | _->print_string " - : "; print_type ty; print_string " = "; print_lit value);
-    print_newline(); pp_results t new_env new_tyenv
+let print_value value ty=(match value with
+  | VarV(id,v)->print_string ("val "^id^" : "); print_type ty; print_string " = "; print_lit v
+  | FunV _ | RecV _->print_string "- : "; print_type ty; print_string " = <fun>"
+  | _->print_string " - : "; print_type ty; print_string " = "; print_lit value);
+  print_newline()
+
+let rec print_result trees env tyenv=match trees with
+  | []->(env,tyenv)
+  | h::t->(match h with
+    | LetAnd defs -> 
+      let now_env=env and now_tyenv=tyenv in 
+      let (new_env,new_tyenv)=List.fold_left (fun (env,tyenv) e->
+        let (ty,_,_)=ty_eval now_tyenv e in 
+        let (value,_)=eval now_env e in 
+        match value with
+        | VarV(id,v) -> print_value value ty; ((id,v)::env,(id,ty)::tyenv)
+        | _->err "invalid pattern") (env,tyenv) defs in print_result t new_env new_tyenv
+    | _->
+      let (ty,new_tyenv,_)=ty_eval tyenv h in
+      let (value,new_env)=eval env h in print_value value ty; print_result t new_env new_tyenv)
 
 let rec cui env tyenv=print_string "# "; let line=read_line() in 
   if line="quit;;" then exit 0
   else 
     try
       (if line="" then cui env tyenv 
-      else let ast=lalr_parse line in let (new_env,new_tyenv)=pp_results ast env tyenv in cui new_env new_tyenv)
+      else let ast=Parser.lalr_parse line in let (new_env,new_tyenv)=print_result (List.rev ast) env tyenv in cui new_env new_tyenv)
     with e->print_string(Printexc.to_string e); print_newline(); cui env tyenv
