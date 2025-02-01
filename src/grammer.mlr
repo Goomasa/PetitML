@@ -11,9 +11,12 @@ Exp := If           {PK_null}
   | Let             {PK_null}
   | Rec             {PK_null}
   | Fun             {PK_null}
-  | Or              {PK_null},
+  | Or              {PK_null}
+  | Match           {PK_null},
 
 If := "if" Exp "then" Exp "else" Exp {PK_if},
+
+Match := "match" Exp "with" "[" "]" "->" Exp "|" Id "::" Id "->" Exp {PK_match}, 
 
 Let := "let" Id "=" Exp "in" Exp {PK_let}
   | "let" Id Args "=" Exp "in" Exp {PK_let},

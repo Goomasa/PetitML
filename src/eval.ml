@@ -74,6 +74,13 @@ let rec eval exp env=match exp with
   | Not exp->(match eval exp env with
     | (BoolV b,e)->(BoolV (not b),e)
     | _->err "not int")
+  | Match(e1,e2,id1,id2,e3)->
+    let (lv,_)=eval e1 env in 
+    let (retv,_)=match lv with
+    | EmptyV -> eval e2 env
+    | ListV(a,b)->eval e3 ((id1,a)::(id2,b)::env)
+    | _->err "invalid match"
+    in (retv,env)
   | _->err("not implemented")
 and eval_app funv apps fenv env=match apps with
   | h::[]->(match funv with

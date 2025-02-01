@@ -29,6 +29,9 @@ type token_kind=
   | LBracket
   | RBracket
   | ColCol
+  | Match
+  | With
+  | Bar
   | End (* for lalr *)
 
 type token_line=Token of token_kind*token_line|End
@@ -80,6 +83,8 @@ let to_token str=if str="" then (None,"") else
       | "in"->Some In
       | "fun"->Some Fun
       | "rec"->Some Rec
+      | "match"->Some Match
+      | "with"->Some With
       | _->Some (Ident w)
     in (token,s)
     else let token= match str.[0] with
@@ -96,6 +101,7 @@ let to_token str=if str="" then (None,"") else
     | ';'->Some Semi
     | '['->Some LBracket
     | ']'->Some RBracket
+    | '|'->Some Bar
     | _-> err "lexer err"
    in (token,sub_str str 1)
 
