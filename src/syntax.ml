@@ -6,12 +6,18 @@ type prod_kind=
   | PK_sub
   | PK_mul
   | PK_div
+  | PK_fadd
+  | PK_fsub
+  | PK_fmul
+  | PK_fdiv
   | PK_unary
   | PK_not
   | PK_eq
   | PK_neq
   | PK_large
   | PK_small
+  | PK_largeEq
+  | PK_smallEq
   | PK_and
   | PK_or
   | PK_defv
@@ -30,12 +36,16 @@ type prod_kind=
   | PK_letand
   | PK_append
   | PK_cat
+  | PK_nth
 
-type bin_op=Add|Sub|Mul|Div|Eq|Neq|Large|Small|And|Or|Cons|App|Cat
+type bin_op=Add|Sub|Mul|Div|FAdd|FSub|FMul|FDiv
+  |Eq|Neq|Large|Small|LargeEq|SmallEq|And|Or|Cons|App|Cat|Nth
 
 type exp=ILit of int
+  | FLit of float
   | BLit of bool
   | SLit of string
+  | CLit of char
   | LLit of exp*exp
   | Ident of string
   | Var of string*exp
@@ -67,11 +77,17 @@ let to_prod_kind str=match str with
   | "PK_sub"->PK_sub
   | "PK_mul"->PK_mul
   | "PK_div"->PK_div
+  | "PK_fadd"->PK_fadd
+  | "PK_fsub"->PK_fsub
+  | "PK_fmul"->PK_fmul
+  | "PK_fdiv"->PK_fdiv
   | "PK_unary"->PK_unary
   | "PK_not"->PK_not
   | "PK_eq"->PK_eq
   | "PK_neq"->PK_neq
   | "PK_large"->PK_large
+  | "PK_largeEq"->PK_largeEq
+  | "PK_smallEq"->PK_smallEq
   | "PK_small"->PK_small
   | "PK_and"->PK_and
   | "PK_or"->PK_or
@@ -91,6 +107,7 @@ let to_prod_kind str=match str with
   | "PK_letand"->PK_letand
   | "PK_append"->PK_append
   | "PK_cat"->PK_cat
+  | "PK_nth"->PK_nth
   | _->Util.err "no such kind"
 
 let to_binOp prod_kind=match prod_kind with
@@ -98,15 +115,23 @@ let to_binOp prod_kind=match prod_kind with
   | PK_sub->Sub
   | PK_mul->Mul
   | PK_div->Div
+  | PK_fadd->FAdd
+  | PK_fsub->FSub
+  | PK_fmul->FMul
+  | PK_fdiv->FDiv
   | PK_eq->Eq
   | PK_neq->Neq
   | PK_large->Large
+  | PK_small->Small
+  | PK_largeEq->LargeEq
+  | PK_smallEq->SmallEq
   | PK_and->And
   | PK_or->Or
   | PK_cons->Cons
   | PK_append->App
   | PK_cat->Cat
-  | _->Small
+  | PK_nth->Nth
+  | _->Util.err "no such operator"
 
 let ast_err id=Util.err ("ast: invalid pattern >> "^(string_of_int id))
 
@@ -121,11 +146,13 @@ let create_llit trees=
 let create_ast prod_kind token trees=match prod_kind with
   | PK_null | PK_top->trees
   | PK_lit->(match token with
-    | Lexer.Num(n)->ILit(n)::trees
-    | True->BLit(true)::trees
-    | False->BLit(false)::trees
-    | Ident i->Ident(i)::trees
+    | Lexer.Int n->ILit n::trees
+    | Float f->FLit f::trees
+    | True->BLit true::trees
+    | False->BLit false::trees
+    | Ident i->Ident i::trees
     | String s->SLit s::trees
+    | Char c->CLit c::trees
     | _->ast_err 0)
   | PK_unary->(match trees with
     | h::t->Unary h::t

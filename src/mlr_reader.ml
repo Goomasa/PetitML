@@ -41,8 +41,10 @@ let new_grammer=
         | "$$"::t2 -> prod.p_right<-token::prod.p_right; read prod grammer t2
         | _->Util.err "mlr err")
       | _->let token= (match h1 with
-        | "Int" -> NT (Num 0)
+        | "Int" -> NT (Int 0)
+        | "Float"->NT (Float 0.0)
         | "String"->NT (String "")
+        | "Char"->NT (Char ' ')
         | "Eps"->Eps
         | "Ident"->NT (Ident "")
         | _->T h1)

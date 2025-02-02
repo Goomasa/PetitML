@@ -4,8 +4,10 @@ open Typing
 
 let rec print_type ty prev_id=match ty with
   | Int->print_string "int"
+  | Float->print_string "float"
   | Bool->print_string "bool"
   | String->print_string "string"
+  | Char->print_string "char"
   | Fun(t1,t2)->(match t1 with
     | Int|Bool|TyVar _|String->print_type t1 prev_id; print_string " -> "; print_type t2 prev_id
     | _->print_char '('; print_type t1 prev_id; print_string ") ->"; print_type t2 prev_id)
@@ -17,9 +19,11 @@ let rec print_type ty prev_id=match ty with
 
 let rec print_lit value=match value with
   | IntV n-> print_int n
+  | FloatV f->print_float f
   | BoolV true->print_string "true"
   | BoolV false->print_string "false"
   | StringV s->print_string ("\""^s^"\"")
+  | CharV c->print_string "'"; print_char c; print_string "'"
   | FunV _ | RecV _->print_string "<fun>"
   | EmptyV->print_string "[]"
   | ListV _->print_string "["; print_list value; print_string "]"

@@ -5,17 +5,15 @@ let err=Util.err
 
 type val_type=
   | Int
+  | Float
   | Bool
   | String
+  | Char
   | Fun of val_type*val_type   (* type1 -> type2 *)
   | List of val_type
   | TyVar of int
 
 type subst_maps=int*val_type list
-
-let rec search_tyenv id tyenv=match tyenv with
-  | []->err "undefined variable"
-  | (i,ty)::t->if id=i then ty else search_tyenv id t
 
 let tyvar_id =let id=ref 0 in let count()=let prev= !id in id:=!id+1; prev in count
 
@@ -53,17 +51,22 @@ let maps_to_eqs maps=
   in convert maps
 
 let bin_eqs op ty1 ty2=match op with
-  | Add|Sub|Mul|Div|Small|Large->([(ty1,Int);(ty2,Int)],Int)
+  | Add|Sub|Mul|Div->([(ty1,Int);(ty2,Int)],Int)
+  | FAdd|FSub|FMul|FDiv->([(ty1,Float);(ty2,Float)],Float)
+  | Small|Large|SmallEq|LargeEq->([(ty1,Int);(ty2,Int)],Bool)
   | Eq|Neq->([(ty1,ty2)],Bool)
   | And|Or->([(ty1,Bool);(ty2,Bool)],Bool)
   | Cons->([(ty2,List ty1)],List ty1)
   | App->let ret_ty=List (TyVar (tyvar_id())) in ([(ty1,ty2);(ty1,ret_ty)],ret_ty)
   | Cat->([(ty1,String);(ty2,String)],String)
+  | Nth->([(ty1,String);(ty2,Int)],Char)
 
 let rec ty_eval tyenv exp=match exp with
   | ILit _->(Int,tyenv,[])
+  | FLit _->(Float,tyenv,[])
   | BLit _->(Bool,tyenv,[])
   | SLit _->(String,tyenv,[])
+  | CLit _->(Char,tyenv,[])
   | Null->(List (TyVar (tyvar_id())),tyenv,[])
   | LLit(first,next)->
     let (ty1,_,map1)=ty_eval tyenv first in

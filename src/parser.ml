@@ -14,9 +14,11 @@ let search_table sym id=
     if state.items=[accept] then Accept 
     else (List.find (
       fun x->match sym with
-      | NT(Num _) -> x.follow=NT(Num 0)
+      | NT(Int _) -> x.follow=NT(Int 0)
+      | NT(Float _)->x.follow=NT(Float 0.0)
       | NT(Ident _)-> x.follow=NT(Ident "")
       | NT(String _)->x.follow=NT(String "")
+      | NT(Char _)->x.follow=NT(Char ' ')
       | _->x.follow=sym
     ) state.items).action
   with _-> err ("syntax err: "^(string_of_int id))

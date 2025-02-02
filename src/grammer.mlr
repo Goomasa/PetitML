@@ -45,15 +45,21 @@ Comp := Add           {PK_null}
   | Comp "=" Add       {PK_eq}
   | Comp "<>" Add      {PK_neq}
   | Add ">" Add       {PK_large}
-  | Add "<" Add       {PK_small},
+  | Add "<" Add       {PK_small}
+  | Add ">=" Add      {PK_largeEq}
+  | Add "<=" Add      {PK_smallEq},
 
 Add := Mul            {PK_null}
   | Add "+" Mul       {PK_add}
-  | Add "-" Mul       {PK_sub},
+  | Add "-" Mul       {PK_sub}
+  | Add "+." Mul      {PK_fadd}
+  | Add "-." Mul      {PK_fsub},
 
 Mul := Append            {PK_null}
   | Mul "*" Append       {PK_mul}
-  | Mul "/" Append       {PK_div},
+  | Mul "/" Append       {PK_div}
+  | Mul "*." Append      {PK_fmul}
+  | Mul "/." Append      {PK_fdiv},
 
 Append := Cons         {PK_null}
   | Cons "@" Append    {PK_append}
@@ -64,6 +70,7 @@ Cons := Apply           {PK_null}
 
 Apply := Prim           {PK_null}
   | "not" Prim          {PK_not}
+  | Prim "." "[" Exp "]" {PK_nth}
   | Apply Prim          {PK_apply},
 
 Args := Id            {PK_args}
@@ -74,7 +81,9 @@ List := Exp           {PK_null}
   
 Prim := "(" Exp ")"   {PK_null}
   | Int               {PK_lit}
+  | Float             {PK_lit}
   | String            {PK_lit}
+  | Char              {PK_lit}
   | "true"            {PK_lit}
   | "false"           {PK_lit}
   | Id                {PK_null}

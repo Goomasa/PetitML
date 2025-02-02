@@ -2,8 +2,10 @@ open Syntax
 open Environment
 
 type value=IntV of int
+  | FloatV of float
   | BoolV of bool
   | StringV of string
+  | CharV of char
   | VarV of string*value
   | FunV of string*exp*(value env)
   | RecV of string*exp*(value env ref)
@@ -22,12 +24,16 @@ let bin_calc op val1 val2=match (op,val1,val2) with
   | (Sub,IntV n1,IntV n2)->IntV (n1-n2)
   | (Mul,IntV n1,IntV n2)->IntV (n1*n2)
   | (Div,IntV n1,IntV n2)->IntV (n1/n2)
-  | (Eq, IntV n1,IntV n2)->BoolV (n1=n2)
-  | (Eq, BoolV b1,BoolV b2)->BoolV (b1=b2)
-  | (Neq,IntV n1,IntV n2)->BoolV (n1<>n2)
-  | (Neq,BoolV b1,BoolV b2)->BoolV (b1<>b2)
+  | (FAdd,FloatV n1,FloatV n2)->FloatV (n1+.n2)
+  | (FSub,FloatV n1,FloatV n2)->FloatV (n1-.n2)
+  | (FMul,FloatV n1,FloatV n2)->FloatV (n1*.n2)
+  | (FDiv,FloatV n1,FloatV n2)->FloatV (n1/.n2)
+  | (Eq,v1,v2)->BoolV (v1=v2)
+  | (Neq,v1,v2)->BoolV (v1<>v2)
   | (Large,IntV n1,IntV n2)->BoolV (n1>n2)
   | (Small,IntV n1,IntV n2)->BoolV (n1<n2)
+  | (LargeEq,IntV n1,IntV n2)->BoolV (n1>=n2)
+  | (SmallEq,IntV n1,IntV n2)->BoolV (n1<=n2)
   | (And,BoolV false,_)->BoolV false
   | (And,BoolV true,b)->b
   | (Or,BoolV true,_)->BoolV true
@@ -35,12 +41,15 @@ let bin_calc op val1 val2=match (op,val1,val2) with
   | (Cons,v1,v2)->ListV(v1,v2)
   | (App,v1,v2)->append v1 v2
   | (Cat,StringV s1,StringV s2)->StringV(s1^s2)
+  | (Nth,StringV s,IntV n)->CharV(s.[n])
   | _->err "invalid type"
 
 let rec eval env exp=match exp with
   | ILit n->(IntV n,env)
+  | FLit f->(FloatV f,env)
   | BLit b->(BoolV b,env)
   | SLit s->(StringV s,env)
+  | CLit c->(CharV c,env)
   | Null->(EmptyV,env)
   | LLit(first,next)->
     let (fv,_)=eval env first in 
@@ -76,9 +85,10 @@ let rec eval env exp=match exp with
       let (funv,new_fenv)=eval_app v e fenv env in 
       let (retv,_)=eval new_fenv funv in (retv,env)
     | RecV(arg_id,next,fenv)->
+      let domenv=ref [] in 
       let (recv,new_fenv)=eval_app v e !fenv env in 
-      let rec_env=(id,RecV(arg_id,next,fenv))::new_fenv in 
-      let (retv,_)=eval rec_env recv in (retv,env)
+      let rec_env=(id,RecV(arg_id,next,domenv))::new_fenv in 
+      domenv:=rec_env; let (retv,_)=eval rec_env recv in (retv,env)
     | _->err "not function")
   | Not exp->(match eval env exp with
     | (BoolV b,e)->(BoolV (not b),e)
