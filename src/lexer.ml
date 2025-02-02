@@ -58,7 +58,7 @@ let rec get_num s n=
 let rec get_keyword word str=
   try
     let i=Char.code str.[0] in 
-    if (i>=97&&i<=122)||(i>=65&&i<=90)||(i=95) then get_keyword (word^(Char.escaped str.[0])) (sub_str str 1)
+    if (i>=97&&i<=122)||(i>=65&&i<=90)||(i=95)||(i>=48&&i<=57) then get_keyword (word^(Char.escaped str.[0])) (sub_str str 1)
     else (word,str)
   with _->(word,str)
 

@@ -57,7 +57,7 @@ let bin_eqs op ty1 ty2=match op with
   | Eq|Neq->([(ty1,ty2)],Bool)
   | And|Or->([(ty1,Bool);(ty2,Bool)],Bool)
   | Cons->([(ty2,List ty1)],List ty1)
-  | App->([(ty1,ty2)],ty1)
+  | App->let ret_ty=List (TyVar (tyvar_id())) in ([(ty1,ty2);(ty1,ret_ty)],ret_ty)
   | Cat->([(ty1,String);(ty2,String)],String)
 
 let rec ty_eval tyenv exp=match exp with
