@@ -128,10 +128,14 @@ let rec ty_eval tyenv exp=match exp with
     let (ty3,_,map3)=ty_eval ((id1,domty1)::(id2,domty2)::tyenv) e3 in 
     let new_eqs=(ty1,List domty1)::(ty1,domty2)::(ty2,ty3)::(maps_to_eqs map1)@(maps_to_eqs map2)@(maps_to_eqs map3) in 
     let new_map=unify new_eqs in (subst ty2 new_map,tyenv,new_map)
-  | _->err "not implemented"
+  | _->err "ty_eval not implemented"
 and tyeval_app funty app eqs tyenv=match app with
   | []->let new_map=unify eqs in (subst funty new_map,new_map)
   | h::t->(match funty with
     | Fun(ty1,ty2)-> 
       let (ty,_,map)=ty_eval tyenv h in tyeval_app ty2 t ((ty1,ty)::(maps_to_eqs map)@eqs) tyenv
+    | TyVar _->
+      let (ty,_,map)=ty_eval tyenv h in
+      let domty=TyVar (tyvar_id()) in 
+      tyeval_app domty t ((funty,Fun(ty,domty))::(maps_to_eqs map)@eqs) tyenv
     | _->err "invalid application")

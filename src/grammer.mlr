@@ -1,6 +1,5 @@
 Top := Exp ";;"      {PK_top}
-  | LetSeq ";;"       {PK_top}
-  | DefRec ";;"      {PK_top},
+  | LetSeq ";;"       {PK_top},
 
 LetSeq := "let" LetAnd   {PK_null}
   | "let" DefRec         {PK_null}

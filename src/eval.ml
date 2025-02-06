@@ -90,6 +90,13 @@ let rec eval env exp=match exp with
       let rec_env=(id,RecV(arg_id,next,domenv))::new_fenv in 
       domenv:=rec_env; let (retv,_)=eval rec_env recv in (retv,env)
     | _->err "not function")
+  | Apply(e1,e2)->
+    let (v,_)=eval env e1 in 
+    (match v with
+    | FunV(_,_,fenv)->
+      let (funv,new_fenv)=eval_app v e2 fenv env in 
+      let (retv,_)=eval new_fenv funv in (retv,env)
+    | _->err "not function")
   | Not exp->(match eval env exp with
     | (BoolV b,e)->(BoolV (not b),e)
     | _->err "not int")
@@ -100,7 +107,7 @@ let rec eval env exp=match exp with
     | ListV(a,b)->eval ((id1,a)::(id2,b)::env) e3
     | _->err "invalid match"
     in (retv,env)
-  | _->err("not implemented")
+  | _->err("eval not implemented")
 and eval_app funv apps fenv env=match apps with
   | h::[]->(match funv with
     | FunV(arg_id,e,_)|RecV(arg_id,e,_)->let (v,_)=eval env h in (e,(arg_id,v)::fenv)
